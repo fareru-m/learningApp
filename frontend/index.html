@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基本情報技術者試験科目A　勉強アプリ</A></title>
+    <!-- Chosen Palette: Calm Neutrals -->
+    <!-- Application Structure Plan: The application is designed as a multi-view Single Page App (SPA) managed via JavaScript. The structure consists of a central 'Dashboard' acting as a hub, from which users can navigate to different learning modules: 'Quick Quiz', 'Exam Simulation', 'Category Practice', and 'Progress Tracker'. This hub-and-spoke model was chosen for its intuitive navigation, allowing users to easily select their desired task without a confusing linear flow. State (like the current view or quiz settings) is managed in a simple JavaScript object. This design separates user goals into clear, accessible sections, enhancing usability and focusing the learning experience. -->
+    <!-- Visualization & Content Choices: 
+    - Report Info: Overall quiz score. Goal: Inform. Viz: Donut Chart (Chart.js/Canvas). Interaction: Hover for details. Justification: Quick, visual summary of performance.
+    - Report Info: Score breakdown by category. Goal: Compare. Viz: Bar Chart (Chart.js/Canvas). Interaction: Filterable in a future version. Justification: Helps identify weak areas.
+    - Report Info: Score history over time. Goal: See Change. Viz: Line Chart (Chart.js/Canvas). Interaction: Tooltip shows score on a specific date. Justification: Motivates user by showing improvement trends.
+    - Report Info: Quiz questions. Goal: Organize/Inform. Viz: Interactive list (HTML/JS). Interaction: Click to review answers. Justification: Essential for learning from mistakes.
+    - Report Info: Study Modes. Goal: Organize. Viz: Interactive Cards (HTML/Tailwind). Interaction: Click to start a mode. Justification: Clear, task-oriented navigation from the main dashboard.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = { darkMode: 'class' };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        html, body { height: 100%; }
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Soft-glow preset: one faint radial + a base linear gradient */
+            background-color: #F8FAFC; /* fallback */
+            background-image:
+                radial-gradient(1000px 700px at 60% 10%, rgba(99,102,241,0.18), transparent 65%),
+                linear-gradient(180deg, #F8FAFC 0%, #EEF2F7 100%);
+            background-repeat: no-repeat;
+            background-attachment: scroll; /* avoid GPU artifacts that can separate layers */
+            color: #4A4A4A;
+            min-height: 100vh;
+        }
+        /* Dark mode background */
+        .dark body {
+            background-color: #0b1220;
+            background-image:
+                radial-gradient(1100px 800px at 70% 0%, rgba(99,102,241,0.25), transparent 70%),
+                radial-gradient(900px 600px at 0% 90%, rgba(236,72,153,0.2), transparent 65%),
+                linear-gradient(180deg, #0b1220 0%, #0a0f1a 100%);
+            color: #E5E7EB;
+        }
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+        }
+        /* Kid-friendly typography */
+        .kid-title { font-family: 'Fredoka', cursive; letter-spacing: .5px; }
+        .option-btn.correct { background-color: #22c55e; color: white; border-color: #16a34a; }
+        .option-btn.incorrect { background-color: #ef4444; color: white; border-color: #dc2626; }
+        .option-btn.selected { background-color: #3b82f6; color: white; }
+        .option-btn:disabled { cursor: not-allowed; opacity: 0.8; }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 350px; }
+        }
+        /* Glassmorphism utilities for dashboard cards */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255,255,255,0.5);
+            backdrop-filter: saturate(140%) blur(14px);
+            -webkit-backdrop-filter: saturate(140%) blur(14px);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+        .glass-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+        }
+        .dark .glass-card {
+            background: rgba(17,24,39,0.55);
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 10px 30px rgba(2, 6, 23, 0.6), inset 0 1px 0 rgba(255,255,255,0.04);
+        }
+        .hero-subtle {
+            background: rgba(255,255,255,0.5);
+            border: 1px solid rgba(255,255,255,0.28);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .dark .hero-subtle {
+            background: rgba(17,24,39,0.55);
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        /* Fun colorful CTA */
+        .rainbow-btn {
+            background-image: linear-gradient(90deg, #34d399, #60a5fa, #a78bfa, #f472b6);
+            background-size: 300% 100%;
+            color: white;
+            box-shadow: 0 10px 25px rgba(79,70,229,0.25);
+            transition: background-position .4s ease, transform .1s ease;
+        }
+        .rainbow-btn:hover { background-position: 100% 0; transform: translateY(-1px); }
+        .rainbow-btn:active { transform: translateY(0) scale(0.99); }
+        /* Dark mode question text color */
+        .dark #question { color: #E5E7EB; }
+        .dark #quiz-mode-title { color: #E5E7EB; }
+        /* Force all UI text to white in dark mode for better readability */
+        .dark #app :where(h1,h2,h3,h4,h5,h6,p,span,li,dt,dd,label,a,button,small,strong,em,th,td,div) {
+            color: #FFFFFF !important;
+        }
+        /* Ensure question/title are readable (also inherit but explicit for safety) */
+        .dark #question, .dark #quiz-mode-title { color: #FFFFFF; }
+        /* Dark mode: make 終了 button text black for contrast on light button bg */
+        .dark #end-btn { color: #111827 !important; }
+        /* Base text color switches automatically with theme */
+        #app { color: #111827; } /* near black for light backgrounds */
+        .dark #app { color: #FFFFFF; } /* white for dark backgrounds */
+        /* Make common inline elements inherit the container color */
+        #app :where(p,span,li,dt,dd,label,a,button,small,strong,em,th,td) { color: inherit; }
+        /* Keep important semantic colors working even in dark mode */
+        .dark .text-green-600 { color: #34D399 !important; }
+        .dark .text-red-600 { color: #F87171 !important; }
+        .dark .text-blue-600 { color: #93C5FD !important; }
+        /* Ensure question/title are readable (also inherit but explicit for safety) */
+        .dark #question, .dark #quiz-mode-title { color: #FFFFFF; }
+        /* Dark mode: make 終了 button text black for contrast on light button bg */
+        .dark #end-btn { color: #111827 !important; }
+        /* Floating Music Button + Panel */
+        .music-fab {
+            position: fixed; bottom: 1rem; right: 1rem; z-index: 60;
+            width: 56px; height: 56px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            color: #fff; box-shadow: 0 10px 20px rgba(2,6,23,.25);
+            border: none; cursor: pointer; font-size: 22px;
+        }
+        .music-fab:hover { transform: translateY(-2px); box-shadow: 0 14px 26px rgba(2,6,23,.35); }
+        .dark .music-fab { box-shadow: 0 10px 20px rgba(0,0,0,.5); }
+        .music-panel {
+            position: fixed; bottom: 5.5rem; right: 1rem; z-index: 60;
+            width: 340px; max-width: calc(100vw - 2rem);
+        }
+        @media (min-width: 640px) { .music-panel { width: 380px; } }
+        /* Music panel nav arrows */
+        .player-wrap { position: relative; }
+        .music-nav-btn {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            width: 32px; height: 32px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(17,24,39,0.6); color: #fff; border: 1px solid rgba(255,255,255,0.5);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+            cursor: pointer;
+        }
+        .music-nav-btn:hover { filter: brightness(1.1); }
+        .music-nav-prev { left: -12px; }
+        .music-nav-next { right: -12px; }
+        /* Music panel header */
+        .music-header {
+            display:flex; align-items:center; justify-content:space-between;
+            padding:.35rem .5rem .5rem; margin-bottom:.35rem;
+        }
+        .music-title { font-weight:600; font-size:.95rem; }
+        .music-close {
+            width:28px; height:28px; border-radius:50%;
+            display:flex; align-items:center; justify-content:center;
+            background: rgba(0,0,0,0.07); color:#111827; border:1px solid rgba(0,0,0,0.08);
+            cursor:pointer;
+        }
+        .dark .music-close { background: rgba(255,255,255,0.08); color:#fff; border-color: rgba(255,255,255,0.12); }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Global Theme Toggle (visible on all pages) -->
+    <button id="theme-toggle" class="fixed top-4 right-4 z-50 glass-card rounded-full p-2 text-gray-700 dark:text-gray-100" title="テーマ切替">
+        <span id="theme-icon">🌙</span>
+    </button>
+
+    <div id="app" class="container mx-auto p-4 md:p-8 max-w-5xl">
+
+        <!-- ===== VIEW: DASHBOARD ===== -->
+        <div id="dashboard-view" class="view active">
+            <header class="relative text-center mb-10 hero-subtle rounded-3xl p-8 shadow-sm">
+                <div class="absolute right-4 top-4 flex items-center gap-2"></div>
+                <h1 class="kid-title text-4xl md:text-5xl font-extrabold text-gray-800 dark:text-gray-100 tracking-tight">基本情報技術者試験科目A　勉強アプリ</h1>
+                <p class="mt-3 text-lg text-gray-600 dark:text-gray-300">学習モードを選択して、準備を始めましょう。</p>
+                <button onclick="startQuiz({mode: 'quick'})" class="mt-6 inline-flex items-center justify-center rainbow-btn font-semibold py-3 px-6 rounded-xl">はじめる ✨</button>
+            </header>
+            
+            <main class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glass-card p-6 rounded-2xl cursor-pointer" onclick="startQuiz({mode: 'quick'})">
+                    <h2 class="kid-title text-2xl font-bold text-gray-800 dark:text-gray-100">🚀 クイッククイズ</h2>
+                    <p class="text-gray-600 dark:text-gray-300 mt-2">時間制限なしのランダム10問。ウォームアップにぴったり！</p>
+                </div>
+                <div class="glass-card p-6 rounded-2xl cursor-pointer" onclick="navigateTo('simulation-setup-view')">
+                    <h2 class="kid-title text-2xl font-bold text-gray-800 dark:text-gray-100">⏱️ 試験シミュレーション</h2>
+                    <p class="text-gray-600 dark:text-gray-300 mt-2">本番みたいにチャレンジしよう！</p>
+                </div>
+                <div class="glass-card p-6 rounded-2xl cursor-pointer" onclick="showCategorySelection()">
+                    <h2 class="kid-title text-2xl font-bold text-gray-800 dark:text-gray-100">📚 カテゴリ別練習</h2>
+                    <p class="text-gray-600 dark:text-gray-300 mt-2">好きなテーマを選んで集中トレーニング！</p>
+                </div>
+                <div class="glass-card p-6 rounded-2xl cursor-pointer" onclick="navigateTo('progress-view')">
+                    <h2 class="kid-title text-2xl font-bold text-gray-800 dark:text-gray-100">📊 学習進捗</h2>
+                    <p class="text-gray-600 dark:text-gray-300 mt-2">がんばりの記録をグラフでチェック！</p>
+                </div>
+            </main>
+        </div>
+        
+        <!-- ===== VIEW: CATEGORY SELECTION ===== -->
+        <div id="category-view" class="view">
+             <header class="mb-8">
+                <button onclick="navigateTo('dashboard-view')" class="text-blue-600 hover:text-blue-800 font-medium">&larr; ダッシュボードに戻る</button>
+                <h1 class="text-3xl font-bold text-gray-800 text-center mt-4">問題カテゴリを選択</h1>
+                <p class="text-center text-gray-500 mt-2">1つ以上のトピックを選択して、集中練習セッションを開始します。</p>
+            </header>
+            <div id="category-list" class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+                <!-- Categories will be populated by JS -->
+            </div>
+            <button id="start-category-quiz-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed disabled:bg-gray-400 disabled:text-gray-100 disabled:ring-0">カテゴリ練習を開始</button>
+        </div>
+
+        <!-- ===== VIEW: SIMULATION SETUP ===== -->
+        <div id="simulation-setup-view" class="view">
+            <div class="container mx-auto p-4 md:p-6">
+                <div class="flex items-center mb-6">
+                    <button onclick="navigateTo('dashboard-view')" class="mr-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <h1 class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">試験シミュレーション設定</h1>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="glass-card p-6 rounded-2xl">
+                        <h2 class="kid-title text-xl font-bold text-gray-800 dark:text-gray-100 mb-2">科目A試験</h2>
+                        <p class="text-gray-600 dark:text-gray-300 mb-4">本番形式のタイマー付き練習。</p>
+                        <label class="block text-sm text-gray-600 dark:text-gray-300 mb-1">過去問の年度を選択</label>
+                        <select id="year-regular" class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 mb-4"></select>
+                        <button class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700" onclick="startSimulation('regular')">開始</button>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl">
+                        <h2 class="kid-title text-xl font-bold text-gray-800 dark:text-gray-100 mb-2">科目A修了試験</h2>
+                        <p class="text-gray-600 dark:text-gray-300 mb-4">仕上げの確認テスト。</p>
+                        <label class="block text-sm text-gray-600 dark:text-gray-300 mb-1">過去問の年度を選択</label>
+                        <select id="year-final" class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 mb-4"></select>
+                        <button class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700" onclick="startSimulation('final')">開始</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== VIEW: QUIZ ===== -->
+        <div id="quiz-view" class="view">
+            <header class="flex justify-between items-center mb-6 glass-card p-4 rounded-2xl">
+                <div>
+                    <p id="quiz-mode-title" class="kid-title text-2xl font-bold text-gray-800 dark:text-gray-100"></p>
+                    <p id="progress-info" class="text-sm font-medium text-gray-500"></p>
+                </div>
+                <div id="timer-container" class="hidden text-right">
+                    <p class="text-lg font-bold text-red-500" id="timer">00:00</p>
+                    <p class="text-xs text-gray-500">残り時間</p>
+                </div>
+            </header>
+            <main>
+                 <div class="glass-card p-6 rounded-2xl mb-6 min-h-[120px]">
+                    <p id="question" class="text-xl font-semibold text-gray-800"></p>
+                </div>
+                <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                <div class="mt-8 flex justify-between items-center">
+                    <button id="end-btn" onclick="navigateTo('dashboard-view')" class="bg-gray-200 text-gray-800 font-bold py-2 px-5 rounded-lg hover:bg-gray-300 transition-colors">終了</button>
+                    <p id="feedback" class="h-6 text-lg font-medium text-center flex-grow"></p>
+                    <button id="next-btn" class="bg-blue-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors">次へ &rarr;</button>
+                </div>
+            </main>
+        </div>
+
+        <!-- ===== VIEW: RESULTS ===== -->
+        <div id="results-view" class="view">
+            <header class="text-center mb-8">
+                <h1 class="text-4xl font-extrabold text-gray-800 tracking-tight">練習結果</h1>
+                <p class="mt-2 text-lg text-gray-500">以下はあなたのパフォーマンスの概要です。</p>
+            </header>
+            <main>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="glass-card p-6 rounded-2xl">
+                        <h2 class="text-xl font-bold text-center text-gray-800 mb-4">合計スコア</h2>
+                        <div class="chart-container">
+                            <canvas id="score-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl">
+                        <h2 class="text-xl font-bold text-center text-gray-800 mb-4">カテゴリ別パフォーマンス</h2>
+                        <div class="chart-container">
+                            <canvas id="category-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 glass-card p-6 rounded-2xl">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">解答レビュー</h2>
+                    <div id="review-container" class="space-y-4 max-h-96 overflow-y-auto pr-2"></div>
+                </div>
+                <div class="mt-8 text-center">
+                    <button onclick="navigateTo('dashboard-view')" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 transition-colors shadow-md">完了</button>
+                </div>
+            </main>
+        </div>
+
+        <!-- ===== VIEW: PROGRESS ===== -->
+        <div id="progress-view" class="view">
+            <div class="container mx-auto p-4 md:p-6">
+                <div class="flex items-center mb-6">
+                    <button onclick="navigateTo('dashboard-view')" class="mr-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <h1 class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">学習進捗</h1>
+                </div>
+                
+                <div class="glass-card p-4 md:p-6 rounded-2xl mb-6">
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        <button onclick="renderProgressChart('all')" class="px-4 py-2 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-colors text-sm md:text-base">
+                            すべて
+                        </button>
+                        <button onclick="renderProgressChart('quick')" class="px-4 py-2 rounded-full bg-purple-500 text-white hover:bg-purple-600 transition-colors text-sm md:text-base">
+                            クイッククイズ
+                        </button>
+                        <button onclick="renderProgressChart('simulation')" class="px-4 py-2 rounded-full bg-pink-500 text-white hover:bg-pink-600 transition-colors text-sm md:text-base">
+                            試験シミュレーション
+                        </button>
+                    </div>
+                    
+                    <div class="relative" style="height: 400px; width: 100%;">
+                        <canvas id="progressChart" style="display: block; width: 100%; height: 100%;"></canvas>
+                    </div>
+                    
+                    <!-- Loading indicator -->
+                    <div id="chart-loading" class="hidden absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 dark:bg-gray-900 dark:bg-opacity-80">
+                        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                    </div>
+                    
+                    <!-- Stats section -->
+                    <div id="progressStats" class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Stats will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Recent Results Section -->
+                <div class="glass-card p-4 md:p-6 rounded-2xl">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">最近の結果</h2>
+                    <div id="recentResults" class="space-y-4">
+                        <!-- Recent results will be populated by JavaScript -->
+                        <div class="text-center py-8">
+                            <p class="text-gray-500 dark:text-gray-400 mb-4">まだ記録がありません。</p>
+                            <button onclick="startQuiz({mode: 'quick'})" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                                クイズを始める
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Music Toggle + Panel (always visible button) -->
+    <button id="music-fab" class="music-fab" title="音楽プレイヤー">
+        🎵
+    </button>
+    <div id="music-panel" class="music-panel hidden">
+        <div class="glass-card rounded-2xl p-2 shadow-lg player-wrap">
+            <div class="music-header">
+                <span id="music-genre" class="music-title">Study / Focus</span>
+                <button id="music-close" class="music-close" title="閉じる" aria-label="閉じる">×</button>
+            </div>
+            <button id="music-prev" class="music-nav-btn music-nav-prev" title="前のジャンル" aria-label="前へ">◀</button>
+            <button id="music-next" class="music-nav-btn music-nav-next" title="次のジャンル" aria-label="次へ">▶</button>
+            <iframe id="spotify-iframe" src="https://open.spotify.com/embed/playlist/37i9dQZF1DWYoYGBbGKurt?utm_source=generator" width="100%" height="180" frameborder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+            <div class="border-t border-gray-200 dark:border-gray-700 mt-0"></div>
+            <div id="playlist-button-container" class="flex justify-between items-center mt-2">
+                <button id="playlist-toggle" class="text-sm font-medium px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700">Playlist</button>
+            </div>
+            <div id="playlist-list" class="mt-2 hidden grid grid-cols-1 gap-1"></div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        const questions = [
+            { category: "理論", question: "デジタルコンピューティングの基礎となる数体系はどれですか？", options: ["10進数", "2進数", "8進数", "16進数"], answer: "2進数", explanation: "2進数（基数2）は0と1の2つの記号を使用し、電子回路のオン/オフ状態を表します。" },
+            { category: "ネットワーク", question: "電子メールの送信に使用されるプロトコルはどれですか？", options: ["HTTP", "FTP", "SMTP", "TCP"], answer: "SMTP", explanation: "SMTP（Simple Mail Transfer Protocol）は、インターネット上で電子メールを送信するための標準です。" },
+            { category: "データベース", question: "SQLにおけるDML（データ操作言語）の例はどれですか？", options: ["CREATE", "ALTER", "SELECT", "DROP"], answer: "SELECT", explanation: "DMLはデータを操作するために使用されます。例：SELECT、INSERT、UPDATE、DELETE。CREATE、ALTER、DROPはDDL（データ定義言語）の一部です。" },
+            { category: "理論", question: "2進数 '1011' の10進数値はいくつですか？", options: ["9", "10", "11", "13"], answer: "11", explanation: "(1 * 2^3) + (0 * 2^2) + (1 * 2^1) + (1 * 2^0) = 8 + 0 + 2 + 1 = 11。" },
+            { category: "セキュリティ", question: "鍵なしでは読み取れない形式にデータを変換して保護する技術を何と呼びますか？", options: ["ファイアウォール", "暗号化", "認証", "ハッシュ化"], answer: "暗号化", explanation: "暗号化は、平文を暗号文に変換して不正アクセスからデータを保護するプロセスです。" },
+            { category: "プロジェクトマネジメント", question: "プロジェクトのスケジュールとタスク間の依存関係を視覚化するために使用される図はどれですか？", options: ["フローチャート", "UML図", "ガントチャート", "ERD図"], answer: "ガントチャート", explanation: "ガントチャートは、プロジェクトの開始から終了までのスケジュールを示す棒グラフの一種です。" },
+            { category: "ネットワーク", question: "ネットワーク通信のための7層参照モデルとして知られているものはどれですか？", options: ["TCP/IPモデル", "OSIモデル", "ウォーターフォールモデル", "Vモデル"], answer: "OSIモデル", explanation: "OSI（Open Systems Interconnection）モデルは、電気通信またはコンピューティングシステムの通信機能を特徴付け、標準化する概念モデルです。" },
+            { category: "アルゴリズム", question: "後入れ先出し（LIFO）の原則に従うデータ構造はどれですか？", options: ["キュー", "スタック", "連結リスト", "ツリー"], answer: "スタック", explanation: "スタックは皿の山のように機能します。最後に追加された項目が最初に取り出されます。" },
+            { category: "セキュリティ", question: "正当なユーザーがネットワークサービスを利用できないようにする攻撃を何と呼びますか？", options: ["フィッシング", "中間者攻撃", "サービス拒否（DoS）攻撃", "SQLインジェクション"], answer: "サービス拒否（DoS）攻撃", explanation: "DoS攻撃は、偽のトラフィックやリクエストでターゲットを溢れさせ、リソースを消費させてアクセス不能にします。" },
+            { category: "データベース", question: "SQLにおけるDML（データ操作言語）の例はどれですか？", options: ["CREATE", "ALTER", "SELECT", "DROP"], answer: "SELECT", explanation: "DMLはデータを操作するために使用されます。例：SELECT、INSERT、UPDATE、DELETE。CREATE、ALTER、DROPはDDL（データ定義言語）の一部です。" },
+            { category: "ネットワーク", question: "IPアドレス 192.168.1.1 はどのクラスに属しますか？", options: ["クラスA", "クラスB", "クラスC", "クラスD"], answer: "クラスC", explanation: "クラスCのIPアドレスは192.0.0.0から223.255.255.255の範囲で、通常は小規模から中規模のネットワークに使用されます。" },
+            { category: "アルゴリズム", question: "二分探索アルゴリズムの時間計算量はどれですか？", options: ["O(n)", "O(log n)", "O(n^2)", "O(1)"], answer: "O(log n)", explanation: "二分探索はソート済みの配列に対して機能し、各ステップで探索空間を半分に分割するため、非常に効率的です。" },
+            { category: "プロジェクトマネジメント", question: "ITサービスの文脈における 'SLA' は何の頭字語ですか？", options: ["Service Level Agreement", "Software License Agreement", "System Logic Algorithm", "Secure Layer Access"], answer: "Service Level Agreement", explanation: "SLAは、サービスプロバイダーと顧客の間で期待されるサービスレベルを定義する契約です。" },
+            { category: "理論", question: "電源が切れるとデータが失われる揮発性コンピュータメモリはどれですか？", options: ["ROM", "SSD", "RAM", "フラッシュメモリ"], answer: "RAM", explanation: "RAM（Random Access Memory）は、オペレーティングシステムやアプリケーションがアクティブに使用する短期的なデータストレージに使用されます。" }
+        ];
+
+        const state = {
+            currentView: 'dashboard-view',
+            quiz: {
+                questions: [],
+                currentIndex: 0,
+                score: 0,
+                mode: 'quick',
+                subMode: null,
+                year: null,
+                usePdf: false,
+                pdfSrc: null,
+                pdfIndex: 0,
+                answerKey: null,
+                userAnswers: [],
+                timerInterval: null
+            },
+            charts: {},
+            progressFilter: 'all'
+        };
+
+        // Chart.js theming helpers (light/dark aware)
+        function isDarkMode() {
+            return document.documentElement.classList.contains('dark');
+        }
+        function getChartTheme() {
+            const dark = isDarkMode();
+            return {
+                text: dark ? '#E5E7EB' : '#374151',
+                grid: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                primary: dark ? '#60a5fa' : '#3b82f6',
+                accent: dark ? '#a78bfa' : '#8b5cf6',
+                success: dark ? '#34d399' : '#22c55e',
+                danger: dark ? '#f87171' : '#ef4444',
+                fillPrimary: dark ? 'rgba(96,165,250,0.15)' : 'rgba(59,130,246,0.10)'
+            };
+        }
+        function refreshChartsForTheme() {
+            // Re-render charts if their canvases are present
+            if (document.getElementById('score-chart')) {
+                renderResultCharts();
+            }
+            if (document.getElementById('progressChart')) {
+                renderProgressChart(state.progressFilter || 'all');
+            }
+        }
+
+        const views = document.querySelectorAll('.view');
+        const appContainer = document.getElementById('app');
+
+        function navigateTo(viewId) {
+            views.forEach(view => view.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            state.currentView = viewId;
+            window.scrollTo(0, 0);
+
+            // If leaving quiz view, ensure any running timer is stopped
+            if (viewId !== 'quiz-view' && state.quiz && state.quiz.timerInterval) {
+                clearInterval(state.quiz.timerInterval);
+                state.quiz.timerInterval = null;
+            }
+
+            if (viewId === 'progress-view') {
+                renderProgressPage();
+            }
+            if (viewId === 'simulation-setup-view') {
+                populateSimulationYears();
+            }
+        }
+        
+        window.navigateTo = navigateTo;
+
+        function startQuiz(config) {
+            // Stop any existing timer before resetting quiz state
+            if (state.quiz && state.quiz.timerInterval) {
+                clearInterval(state.quiz.timerInterval);
+            }
+            if (document.getElementById('timer')) {
+                document.getElementById('timer').textContent = '00:00';
+            }
+
+            let selectedQuestions = [];
+            let timeLimit = 0;
+            let modeTitle = "";
+            
+            if (config.mode === 'quick') {
+                selectedQuestions = questions.sort(() => 0.5 - Math.random()).slice(0, 10);
+                modeTitle = "🚀 クイッククイズ";
+            } else if (config.mode === 'simulation') {
+                selectedQuestions = questions.sort(() => 0.5 - Math.random()).slice(0, 20);
+                const sub = config.subMode || 'regular';
+                if (sub === 'regular') {
+                    timeLimit = 30 * 60; // 30 minutes in seconds
+                    modeTitle = "⏱️ 科目A試験（30分２０問)";
+                } else {
+                    timeLimit = 0; // no timer for final by default
+                    modeTitle = "✅ 科目A修了認定試験";
+                }
+                if (config.year) {
+                    modeTitle += `（${config.year}年 過去問）`;
+                }
+             } else if (config.mode === 'category') {
+                 selectedQuestions = questions.filter(q => config.categories.includes(q.category)).sort(() => 0.5 - Math.random());
+                  if (selectedQuestions.length > 15) {
+                     selectedQuestions = selectedQuestions.slice(0, 15);
+                 }
+                 modeTitle = "📚 カテゴリ別練習";
+             }
+
+            if(selectedQuestions.length === 0 && config.mode !== 'simulation') {
+                alert("選択されたカテゴリの問題が見つかりませんでした。");
+                return;
+            }
+
+            state.quiz = {
+                questions: selectedQuestions,
+                currentIndex: 0,
+                score: 0,
+                mode: config.mode,
+                subMode: config.subMode || null,
+                year: config.year || null,
+                usePdf: !!(config.mode === 'simulation' && (config.subMode || 'regular') === 'regular' && config.year),
+                pdfSrc: (config.mode === 'simulation' && (config.subMode || 'regular') === 'regular' && config.year)
+                    ? `../kakomon/${config.year}A_Q.pdf`
+                    : null,
+                pdfIndex: 0,
+                answerKey: null,
+                userAnswers: [],
+                timerInterval: null
+            };
+            
+            document.getElementById('quiz-mode-title').textContent = modeTitle;
+
+            if (timeLimit > 0) {
+                startTimer(timeLimit);
+                document.getElementById('timer-container').classList.remove('hidden');
+            } else {
+                document.getElementById('timer-container').classList.add('hidden');
+            }
+            
+            document.getElementById('next-btn').onclick = () => handleNextQuestion();
+            
+            navigateTo('quiz-view');
+            if (state.quiz.usePdf) {
+                renderSimulationPDF();
+            } else {
+                displayQuestion();
+            }
+        }
+        
+        window.startQuiz = startQuiz;
+        
+        function startTimer(duration) {
+            let timer = duration, minutes, seconds;
+            const timerEl = document.getElementById('timer');
+            
+            if (state.quiz && state.quiz.timerInterval) {
+                clearInterval(state.quiz.timerInterval);
+            }
+
+            state.quiz.timerInterval = setInterval(() => {
+                minutes = parseInt(timer / 60, 10);
+                seconds = parseInt(timer % 60, 10);
+
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+
+                timerEl.textContent = minutes + ":" + seconds;
+
+                if (--timer < 0) {
+                    clearInterval(state.quiz.timerInterval);
+                    state.quiz.timerInterval = null;
+                    alert("時間切れです！");
+                    showResults();
+                }
+            }, 1000);
+        }
+
+        function displayQuestion() {
+            const quiz = state.quiz;
+            const q = quiz.questions[quiz.currentIndex];
+            document.getElementById('question').textContent = q.question;
+            
+            const progressInfoEl = document.getElementById('progress-info');
+            if (quiz.mode === 'category') {
+                progressInfoEl.style.display = 'none';
+            } else {
+                progressInfoEl.style.display = 'block';
+                progressInfoEl.textContent = `問題 ${quiz.currentIndex + 1} / ${quiz.questions.length}`;
+            }
+
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+            document.getElementById('feedback').textContent = '';
+            
+            const nextBtn = document.getElementById('next-btn');
+            if (quiz.mode === 'category') {
+                nextBtn.textContent = '次へ →';
+            } else {
+                nextBtn.textContent = (quiz.currentIndex === quiz.questions.length - 1) ? '結果を見る' : '次へ →';
+            }
+
+            q.options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.classList.add('option-btn', 'w-full', 'p-4', 'border', 'border-gray-300', 'rounded-lg', 'text-left', 'hover:bg-gray-100', 'transition-colors');
+                button.onclick = () => selectAnswer(option, button);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        function selectAnswer(selectedOption, buttonEl) {
+            const quiz = state.quiz;
+            
+            // Allow selecting/deselecting only in simulation mode before moving on
+            if(quiz.mode === 'simulation') {
+                Array.from(document.querySelectorAll('.option-btn')).forEach(btn => btn.classList.remove('selected'));
+                buttonEl.classList.add('selected');
+                state.quiz.userAnswers[state.quiz.currentIndex] = {
+                    question: quiz.questions[quiz.currentIndex].question,
+                    selected: selectedOption,
+                    correct: quiz.questions[quiz.currentIndex].answer,
+                    explanation: quiz.questions[quiz.currentIndex].explanation,
+                    isCorrect: selectedOption === quiz.questions[quiz.currentIndex].answer
+                };
+            } else { // For quick quiz and category, show immediate feedback
+                Array.from(document.querySelectorAll('.option-btn')).forEach(btn => {
+                    btn.disabled = true;
+                    if(btn.textContent === quiz.questions[quiz.currentIndex].answer) {
+                        btn.classList.add('correct');
+                    }
+                });
+                
+                const isCorrect = selectedOption === quiz.questions[quiz.currentIndex].answer;
+                const feedbackEl = document.getElementById('feedback');
+
+                if(isCorrect){
+                    if (quiz.mode !== 'category') {
+                        state.quiz.score++;
+                    }
+                    buttonEl.classList.add('correct');
+                    feedbackEl.textContent = "正解！";
+                    feedbackEl.className = 'h-6 text-lg font-medium text-center flex-grow text-green-500';
+                } else {
+                    buttonEl.classList.add('incorrect');
+                    feedbackEl.textContent = "不正解！";
+                    feedbackEl.className = 'h-6 text-lg font-medium text-center flex-grow text-red-500';
+                }
+                 state.quiz.userAnswers[state.quiz.currentIndex] = {
+                    question: quiz.questions[quiz.currentIndex].question,
+                    selected: selectedOption,
+                    correct: quiz.questions[quiz.currentIndex].answer,
+                    explanation: quiz.questions[quiz.currentIndex].explanation,
+                    isCorrect: isCorrect
+                };
+            }
+        }
+        
+        function handleNextQuestion(){
+             const quiz = state.quiz;
+            // In simulation mode, check if an answer was selected
+            if(quiz.mode === 'simulation' && !state.quiz.userAnswers[quiz.currentIndex]){
+                alert("まず答えを選択してください。");
+                return;
+            }
+
+            if (quiz.mode === 'category') {
+                let nextIndex;
+                do {
+                    nextIndex = Math.floor(Math.random() * quiz.questions.length);
+                } while (quiz.questions.length > 1 && nextIndex === quiz.currentIndex);
+                quiz.currentIndex = nextIndex;
+                displayQuestion();
+            } else {
+                if (quiz.currentIndex < quiz.questions.length - 1) {
+                    quiz.currentIndex++;
+                    displayQuestion();
+                } else {
+                    showResults();
+                }
+            }
+        }
+
+        function showResults() {
+            clearInterval(state.quiz.timerInterval);
+            state.quiz.timerInterval = null;
+            const timerEl = document.getElementById('timer');
+            if (timerEl) timerEl.textContent = '00:00';
+            // Optionally hide timer after finishing
+            const tc = document.getElementById('timer-container');
+            if (tc) tc.classList.add('hidden');
+            
+            if (state.quiz.mode === 'simulation') {
+                // For PDF mode, compute score from choices vs answer key; otherwise fall back to existing logic
+                if (state.quiz.usePdf && state.quiz.answerKey) {
+                    const total = 20; // fixed
+                    let correct = 0;
+                    for (let i = 0; i < total; i++) {
+                        const idx = String(i + 1);
+                        const choice = state.quiz.userAnswers[i]?.choice;
+                        if (choice && state.quiz.answerKey[idx] && state.quiz.answerKey[idx] === choice) correct++;
+                    }
+                    state.quiz.score = correct;
+                } else {
+                    let correctCount = 0;
+                    state.quiz.userAnswers.forEach(ans => {
+                        if (ans && ans.isCorrect) correctCount++;
+                    });
+                    state.quiz.score = correctCount;
+                }
+            }
+
+            saveAttempt();
+            renderResultCharts();
+            renderReview();
+            navigateTo('results-view');
+        }
+
+        function renderResultCharts() {
+            const quiz = state.quiz;
+            const correct = quiz.score;
+            const incorrect = quiz.questions.length - correct;
+            const categoryPerformance = {};
+            const theme = getChartTheme();
+
+            quiz.questions.forEach((q, index) => {
+                const cat = q.category;
+                if(!categoryPerformance[cat]) categoryPerformance[cat] = { correct: 0, total: 0 };
+                categoryPerformance[cat].total++;
+                if(quiz.userAnswers[index] && quiz.userAnswers[index].isCorrect) {
+                    categoryPerformance[cat].correct++;
+                }
+            });
+
+            const scoreCtx = document.getElementById('score-chart').getContext('2d');
+            if (state.charts.score) state.charts.score.destroy();
+            state.charts.score = new Chart(scoreCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['正解', '不正解'],
+                    datasets: [{
+                        data: [correct, incorrect],
+                        backgroundColor: [theme.success, theme.danger],
+                        borderColor: ['rgba(255,255,255,0.6)'],
+                        borderWidth: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: { legend: { position: 'bottom', labels: { color: theme.text } } }
+                }
+            });
+
+            const categoryCtx = document.getElementById('category-chart').getContext('2d');
+            if (state.charts.category) state.charts.category.destroy();
+            state.charts.category = new Chart(categoryCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(categoryPerformance),
+                    datasets: [{
+                        label: '正解率 %',
+                        data: Object.values(categoryPerformance).map(p => (p.correct / p.total) * 100),
+                        backgroundColor: theme.primary
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { color: theme.text },
+                            grid: { color: theme.grid }
+                        },
+                        x: {
+                            ticks: { color: theme.text },
+                            grid: { color: 'transparent' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+        
+        function renderReview(){
+            const container = document.getElementById('review-container');
+            container.innerHTML = '';
+            // PDF simulation mode: show per-question your answer vs correct answer from kakomon_answers.json
+            if (state.quiz.usePdf) {
+                const total = 20; // fixed
+                async function ensureAnswerKeyForReview(){
+                    if (state.quiz.answerKey) return;
+                    try {
+                        const res = await fetch('./kakomon_answers.json');
+                        const all = await res.json();
+                        const yearKey = String(state.quiz.year);
+                        state.quiz.answerKey = all?.['科目A試験']?.[yearKey] || null;
+                    } catch(e){ console.error('Failed to load answer key in review:', e); }
+                }
+                // Render after ensuring key
+                (async () => {
+                    await ensureAnswerKeyForReview();
+                    const header = document.createElement('div');
+                    header.className = 'mb-4';
+                    header.innerHTML = `<h3 class="kid-title text-xl font-bold">解答レビュー（${state.quiz.year}年 科目A試験）</h3>`;
+                    container.appendChild(header);
+
+                    for (let i = 0; i < total; i++) {
+                        const qno = i + 1;
+                        const your = state.quiz.userAnswers[i]?.choice || '—';
+                        const correct = state.quiz.answerKey ? (state.quiz.answerKey[String(qno)] || '—') : '—';
+                        const isCorrect = your !== '—' && correct !== '—' && your === correct;
+                        const row = document.createElement('div');
+                        row.className = `p-3 md:p-4 rounded-xl glass-card flex items-center justify-between mb-2 ${isCorrect ? 'border border-green-300' : 'border border-red-300'}`;
+                        row.innerHTML = `
+                            <div>
+                                <div class="text-sm text-gray-500">${qno} 問目</div>
+                                <div class="mt-1 text-sm md:text-base ${isCorrect ? 'text-green-700' : 'text-red-700'}">
+                                    あなたの回答: <span class="font-bold">${your}</span>
+                                </div>
+                            </div>
+                            <div class="text-sm md:text-base">
+                                正解: <span class="font-bold ${isCorrect ? 'text-green-700' : 'text-blue-700'}">${correct}</span>
+                            </div>`;
+                        container.appendChild(row);
+                    }
+                })();
+                return;
+            }
+ 
+             // Normal quiz review
+             state.quiz.userAnswers.forEach((answer, index) => {
+                 const el = document.createElement('div');
+                 el.className = 'p-4 rounded-xl glass-card';
+                 el.innerHTML = `
+                     <p class="kid-title text-lg">${index + 1}. ${answer.question}</p>
+                     <p class="mt-2 text-sm ${answer.isCorrect ? 'text-green-600' : 'text-red-600'}">あなたの答え: ${answer.selected || '無回答'}</p>
+                     ${!answer.isCorrect ? `<p class="text-sm text-blue-600">正解: ${answer.correct}</p>` : ''}
+                     <p class="mt-2 text-xs text-gray-500 bg-gray-50 p-2 rounded">${answer.explanation}</p>`;
+                 container.appendChild(el);
+             });
+         }
+        
+        function saveAttempt() {
+            const history = JSON.parse(localStorage.getItem('feQuizHistory')) || [];
+            history.push({
+                date: new Date().toISOString(),
+                mode: state.quiz.mode,
+                score: state.quiz.score,
+                total: state.quiz.questions.length
+            });
+            localStorage.setItem('feQuizHistory', JSON.stringify(history));
+        }
+
+        function renderProgressPage() {
+            const history = JSON.parse(localStorage.getItem('feQuizHistory')) || [];
+            
+            const tableBody = document.getElementById('history-table-body');
+            if (tableBody) {
+                tableBody.innerHTML = '';
+                if (history.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-gray-500">まだ練習履歴がありません。</td></tr>';
+                } else {
+                    history.slice().reverse().forEach(item => {
+                        const row = document.createElement('tr');
+                        row.className = 'border-b';
+                        row.innerHTML = `
+                            <td class="p-2">${new Date(item.date).toLocaleDateString('ja-JP')}</td>
+                            <td class="p-2">${item.mode}</td>
+                            <td class="p-2 font-medium">${item.score} / ${item.total}</td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                }
+            }
+
+            // Default view when opening the page
+            renderProgressChart('all');
+        }
+
+        function renderProgressChart(mode = 'all') {
+            state.progressFilter = mode;
+
+            const theme = getChartTheme();
+            const history = (JSON.parse(localStorage.getItem('feQuizHistory')) || [])
+                .filter(item => item.mode !== 'category'); // Exclude category from progress graphs
+
+            const ctxEl = document.getElementById('progressChart');
+            if (!ctxEl) return;
+            const progressCtx = ctxEl.getContext('2d');
+
+            // Build datasets
+            const byMode = {
+                quick: history.filter(h => h.mode === 'quick'),
+                simulation: history.filter(h => h.mode === 'simulation')
+            };
+
+            let labels = [];
+            let datasets = [];
+
+            if (mode === 'quick' || mode === 'simulation') {
+                const list = byMode[mode];
+                labels = list.map(item => new Date(item.date).toLocaleDateString('ja-JP', { day: 'numeric', month: 'short' }));
+                datasets = [{
+                    label: mode === 'quick' ? 'クイッククイズ' : '試験シミュレーション',
+                    data: list.map(item => (item.score / item.total) * 100),
+                    borderColor: mode === 'quick' ? theme.primary : theme.accent,
+                    backgroundColor: theme.fillPrimary,
+                    fill: true,
+                    tension: 0.1
+                }];
+            } else if (mode === 'all') {
+                // Union of dates across both modes (in chronological order)
+                const allDates = Array.from(new Set(history.map(h => new Date(h.date).toDateString())));
+                // Sort by actual date
+                allDates.sort((a,b)=>b-a);
+                labels = allDates.map(ds => new Date(ds).toLocaleDateString('ja-JP', { day: 'numeric', month: 'short' }));
+
+                function buildSeries(list) {
+                    const map = new Map(list.map(h => [new Date(h.date).toDateString(), (h.score / h.total) * 100]));
+                    return allDates.map(ds => map.has(ds) ? map.get(ds) : null);
+                }
+
+                datasets = [
+                    {
+                        label: 'クイッククイズ',
+                        data: buildSeries(byMode.quick),
+                        borderColor: theme.primary,
+                        backgroundColor: theme.fillPrimary,
+                        fill: true,
+                        tension: 0.1
+                    },
+                    {
+                        label: '試験シミュレーション',
+                        data: buildSeries(byMode.simulation),
+                        borderColor: theme.accent,
+                        backgroundColor: 'rgba(167, 139, 250, 0.10)',
+                        fill: true,
+                        tension: 0.1
+                    }
+                ];
+            } else if (mode === 'category') {
+                // Explicitly handle category button: show notice and render empty chart
+                labels = [];
+                datasets = [];
+            }
+
+            if (state.charts.progress) state.charts.progress.destroy();
+            state.charts.progress = new Chart(progressCtx, {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { color: theme.text },
+                            grid: { color: theme.grid }
+                        },
+                        x: {
+                            ticks: { color: theme.text },
+                            grid: { color: 'transparent' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: mode === 'all' },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `${ctx.dataset.label || ''}: ${Math.round(ctx.parsed.y)}%`
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Update stats/notice area
+            const statsEl = document.getElementById('progressStats');
+            if (statsEl) {
+                if (mode === 'category') {
+                    statsEl.innerHTML = '<div class="col-span-1 md:col-span-3 text-center text-gray-500">カテゴリ別練習は進捗グラフの対象外です。</div>';
+                } else {
+                    const total = history.length;
+                    const last = history[history.length - 1];
+                    const avg = history.length ? Math.round(history.reduce((s, h) => s + (h.score / h.total) * 100, 0) / history.length) : 0;
+                    statsEl.innerHTML = `
+                        <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-800">合計記録: <strong>${total}</strong></div>
+                        <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-800">平均スコア: <strong>${avg}%</strong></div>
+                        <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-800">最新: <strong>${last ? Math.round((last.score / last.total) * 100) + '%' : '-'} (${last ? new Date(last.date).toLocaleDateString('ja-JP') : ''})</strong></div>
+                    `;
+                }
+            }
+        }
+        window.renderProgressChart = renderProgressChart;
+        
+        // Render the PDF for 科目A試験 when a year is selected
+        async function renderSimulationPDF() {
+            const qEl = document.getElementById('question');
+            const optionsContainer = document.getElementById('options-container');
+            const nextBtn = document.getElementById('next-btn');
+            const feedbackEl = document.getElementById('feedback');
+            feedbackEl.textContent = '';
+
+            // Hide options and next button in PDF mode
+            optionsContainer.innerHTML = '';
+            optionsContainer.style.display = 'none';
+            nextBtn.style.display = 'none';
+
+            // Show embedded PDF
+            const src = state.quiz.pdfSrc;
+            const total = 20; // fixed
+            const pdfHtml = src ? `
+                <div class="space-y-4">
+                    <div class="pdf-container" style="height: 55vh;">
+                        <object data="${src}#toolbar=1&navpanes=0&scrollbar=1" type="application/pdf" width="100%" height="100%">
+                            <iframe src="${src}" width="100%" height="100%" title="試験問題PDF"></iframe>
+                        </object>
+                    </div>
+                    <div id="pdf-answer-panel" class="glass-card p-4 rounded-xl">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="kid-title text-lg font-bold">解答入力（${total}問）</h3>
+                            <!-- Score hidden by request -->
+                        </div>
+                        <!-- Per-question MCQ panel -->
+                        <div id="pdf-mcq" class="mb-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="text-sm text-gray-700 dark:text-gray-300">問題 <span id="pdf-cur">1</span> / ${total}</div>
+                                <div class="text-xs text-gray-500" id="pdf-choice-status"></div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button class="pdf-mcq-btn rounded-xl border border-purple-500 dark:border-purple-400 px-4 py-2 text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 transition" data-choice="ア">ア</button>
+                                <button class="pdf-mcq-btn rounded-xl border border-purple-500 dark:border-purple-400 px-4 py-2 text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 transition" data-choice="イ">イ</button>
+                                <button class="pdf-mcq-btn rounded-xl border border-purple-500 dark:border-purple-400 px-4 py-2 text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 transition" data-choice="ウ">ウ</button>
+                                <button class="pdf-mcq-btn rounded-xl border border-purple-500 dark:border-purple-400 px-4 py-2 text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 transition" data-choice="エ">エ</button>
+                            </div>
+                            <div class="mt-4 flex items-center justify-between gap-2">
+                                <button id="pdf-prev" class="font-bold py-2.5 px-5 rounded-xl bg-purple-600 text-white shadow-lg ring-2 ring-purple-300 hover:bg-purple-700 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-purple-400 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-400 disabled:text-gray-100 disabled:ring-0">← 戻る</button>
+                                <button id="pdf-next" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700" onclick="handleNextQuestion()">次へ →</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ` : '<p class="text-red-600">PDFを読み込めませんでした。</p>';
+            qEl.innerHTML = pdfHtml;
+
+            // Prepare answers storage
+            state.quiz.userAnswers = new Array(total).fill(null);
+
+            // Load answer key once
+            async function ensureAnswerKey() {
+                if (state.quiz.answerKey) return;
+                try {
+                    const res = await fetch('./kakomon_answers.json');
+                    const all = await res.json();
+                    const yearKey = String(state.quiz.year);
+                    let key = all?.['科目A試験']?.[yearKey] || null;
+                    if (!key && all?.['科目A試験']?.sample) {
+                        // Fallback to sample if the exact year is missing
+                        key = all['科目A試験'].sample;
+                        console.warn(`Answer key for year ${yearKey} not found. Falling back to 'sample'.`);
+                    }
+                    state.quiz.answerKey = key;
+                } catch (e) {
+                    console.error('Failed to load answer key:', e);
+                }
+            }
+            await ensureAnswerKey();
+
+            function updatePdfScore() {
+                const total = state.quiz.userAnswers.length;
+                let correct = 0;
+                if (state.quiz.answerKey) {
+                    for (let i = 0; i < total; i++) {
+                        const idx = String(i + 1);
+                        const choice = state.quiz.userAnswers[i]?.choice;
+                        if (choice && state.quiz.answerKey[idx] && state.quiz.answerKey[idx] === choice) correct++;
+                    }
+                }
+                // Score hidden by request
+            }
+
+            // Per-question MCQ logic
+            const curEl = document.getElementById('pdf-cur');
+            const choiceStatus = document.getElementById('pdf-choice-status');
+            const nextEl = document.getElementById('pdf-next');
+            const prevEl = document.getElementById('pdf-prev');
+            function renderMcqPanel() {
+                curEl.textContent = String(state.quiz.pdfIndex + 1);
+                const ans = state.quiz.userAnswers[state.quiz.pdfIndex];
+                choiceStatus.textContent = ans && ans.choice ? `選択: ${ans.choice}` : '';
+                // highlight selected
+                document.querySelectorAll('#pdf-mcq .pdf-mcq-btn').forEach(b => {
+                    const c = b.getAttribute('data-choice');
+                    const selected = !!(ans && ans.choice === c);
+                    b.classList.toggle('bg-purple-400', !selected); // light hover color when not selected
+                    b.classList.toggle('bg-blue-500', selected); // distinct selected color
+                    b.classList.toggle('text-white', selected);
+                    b.classList.toggle('border-emerald-500', selected);
+                    b.classList.toggle('border-purple-500', !selected);
+                });
+                // Bounds: disable prev at 1st, next at last
+                prevEl.disabled = state.quiz.pdfIndex === 0;
+                // At last question, keep Next enabled and switch label to '採点'
+                if (state.quiz.pdfIndex === total - 1) {
+                    nextEl.textContent = '採点';
+                    nextEl.disabled = false;
+                } else {
+                    nextEl.textContent = '次へ →';
+                    nextEl.disabled = false;
+                }
+            }
+
+            document.querySelectorAll('#pdf-mcq .pdf-mcq-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const choice = btn.getAttribute('data-choice');
+                    state.quiz.userAnswers[state.quiz.pdfIndex] = { ...(state.quiz.userAnswers[state.quiz.pdfIndex]||{}), choice };
+                    updatePdfScore();
+                    renderMcqPanel();
+                });
+            });
+            prevEl.addEventListener('click', () => {
+                if (state.quiz.pdfIndex > 0) {
+                    state.quiz.pdfIndex--;
+                    renderMcqPanel();
+                }
+            });
+            nextEl.addEventListener('click', () => {
+                if (state.quiz.pdfIndex < total - 1) {
+                    state.quiz.pdfIndex++;
+                    renderMcqPanel();
+                    // Optional: auto-scroll the grid to the current item
+                } else {
+                    // Last question: grade based on selected year/type and show results
+                    showResults();
+                }
+            });
+
+            // Initialize panel
+            state.quiz.pdfIndex = 0;
+            renderMcqPanel();
+        }
+
+        // Theme: init from localStorage and toggle
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.documentElement.classList.add('dark');
+        }
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        function updateThemeIcon(){ themeIcon.textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙'; }
+        updateThemeIcon();
+        themeToggle?.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+            updateThemeIcon();
+            // Update chart themes on toggle
+            refreshChartsForTheme();
+        });
+        
+        // Music FAB: toggle panel and auto-minimize on outside clicks
+        const musicFab = document.getElementById('music-fab');
+        const musicPanel = document.getElementById('music-panel');
+        const spotifyIframe = document.getElementById('spotify-iframe');
+        const musicPrev = document.getElementById('music-prev');
+        const musicNext = document.getElementById('music-next');
+        const musicClose = document.getElementById('music-close');
+        const musicGenre = document.getElementById('music-genre');
+        const playlistToggle = document.getElementById('playlist-toggle');
+        const playlistList = document.getElementById('playlist-list');
+        // Playlists (add more genres here)
+        const playlists = [
+          { name: 'Lofi Chill', url: 'https://open.spotify.com/embed/playlist/37i9dQZF1DWYoYGBbGKurt?utm_source=generator' },
+          { name: 'Jazz', url: 'https://open.spotify.com/embed/playlist/37i9dQZF1DX3SiCzCxMDOH?utm_source=generator' },
+          { name: 'Top Songs Japan', url: 'https://open.spotify.com/embed/playlist/37i9dQZEVXbKXQ4mDTEBXq?utm_source=generator' }
+        ];
+        let playlistIndex = 0;
+        function setPlaylist(i){
+            playlistIndex = (i + playlists.length) % playlists.length;
+            spotifyIframe.src = playlists[playlistIndex].url;
+            musicGenre.textContent = playlists[playlistIndex].name;
+            buildPlaylistList(); // Rebuild to update highlighting
+            playlistToggle?.classList.remove('hidden');
+            playlistList?.classList.add('hidden');
+        }
+        function buildPlaylistList(){
+            if(!playlistList) return;
+            playlistList.innerHTML = '';
+            playlists.forEach((p, idx) => {
+                const btn = document.createElement('button');
+                btn.textContent = p.name;
+                const isActive = idx === playlistIndex;
+                btn.className = `w-full text-left px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 ${isActive ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200' : 'hover:bg-gray-100 dark:hover:bg-gray-800'}`;
+                btn.addEventListener('click', (e) => { 
+                    e.stopPropagation(); 
+                    setPlaylist(idx); 
+                });
+                playlistList.appendChild(btn);
+                if (isActive) btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            });
+        }
+        buildPlaylistList();
+        playlistToggle?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpening = playlistList.classList.toggle('hidden');
+            playlistToggle?.classList.toggle('hidden', !isOpening);
+            if (!isOpening) buildPlaylistList(); // Update highlighting when showing list
+        });
+        function toggleMusicPanel(show) {
+            const isHidden = musicPanel.classList.contains('hidden');
+            musicPanel.classList.toggle('hidden', show === false ? true : isHidden ? false : true);
+            // Ensure playlist button is visible when panel is opened
+            if (!musicPanel.classList.contains('hidden')) {
+                playlistToggle?.classList.remove('hidden');
+                playlistList?.classList.add('hidden');
+            }
+        }
+        musicFab.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isHidden = musicPanel.classList.contains('hidden');
+            musicPanel.classList.toggle('hidden', !isHidden);
+            playlistList.classList.add('hidden');
+        });
+        musicPanel.addEventListener('click', (e) => e.stopPropagation());
+        musicPrev.addEventListener('click', (e) => { e.stopPropagation(); setPlaylist(playlistIndex - 1); });
+        musicNext.addEventListener('click', (e) => { e.stopPropagation(); setPlaylist(playlistIndex + 1); });
+        musicClose.addEventListener('click', (e) => { e.stopPropagation(); musicPanel.classList.add('hidden'); });
+        document.addEventListener('click', () => {
+            // Minimize when clicking anywhere else
+            musicPanel.classList.add('hidden');
+            playlistList.classList.add('hidden');
+        });
+        // Also minimize on navigation between views
+        const originalNavigateTo = window.navigateTo;
+        window.navigateTo = function(viewId){
+            musicPanel.classList.add('hidden');
+            playlistList.classList.add('hidden');
+            originalNavigateTo(viewId);
+        };
+
+        const simulationYears = [2023, 2024, 2025];
+        function populateSimulationYears() {
+            const regSel = document.getElementById('year-regular');
+            const finSel = document.getElementById('year-final');
+            if (!regSel || !finSel) return;
+            [regSel, finSel].forEach(sel => {
+                sel.innerHTML = '';
+                simulationYears.slice().sort((a,b)=>b-a).forEach(y => {
+                    const opt = document.createElement('option');
+                    opt.value = y;
+                    opt.textContent = `${y}年`;
+                    sel.appendChild(opt);
+                });
+                // Preselect most recent year
+                sel.value = simulationYears.slice().sort((a,b)=>b-a)[0];
+            });
+        }
+
+        function startSimulation(type) {
+            const year = type === 'regular' ? document.getElementById('year-regular')?.value : document.getElementById('year-final')?.value;
+            const subMode = type === 'regular' ? 'regular' : 'final';
+            startQuiz({ mode: 'simulation', subMode, year: year ? parseInt(year, 10) : null });
+        }
+        window.startSimulation = startSimulation;
+    });
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</body>
+</html>
