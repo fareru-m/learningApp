@@ -670,11 +670,7 @@
             }
 
             if (quiz.mode === 'category') {
-                let nextIndex;
-                do {
-                    nextIndex = Math.floor(Math.random() * quiz.questions.length);
-                } while (quiz.questions.length > 1 && nextIndex === quiz.currentIndex);
-                quiz.currentIndex = nextIndex;
+                quiz.currentIndex = (quiz.currentIndex + 1) % quiz.questions.length;
                 displayQuestion();
             } else {
                 if (quiz.currentIndex < quiz.questions.length - 1) {
@@ -815,13 +811,21 @@
                     header.innerHTML = `<h3 class="kid-title text-xl font-bold">解答レビュー（${state.quiz.year}年 科目A試験）</h3>`;
                     container.appendChild(header);
 
+                    if (!state.quiz.answerKey) {
+                        const warn = document.createElement('div');
+                        warn.className = 'mb-3 p-3 rounded-lg bg-yellow-50 text-yellow-800 border border-yellow-200 text-sm';
+                        warn.innerHTML = `解答キーを読み込めませんでした。HTTPサーバーで開いてください。<br>
+                            Windows(PowerShell): <code>cd frontend; python -m http.server 8000</code>`;
+                        container.appendChild(warn);
+                    }
+
                     for (let i = 0; i < total; i++) {
                         const qno = i + 1;
                         const your = state.quiz.userAnswers[i]?.choice || '—';
                         const correct = state.quiz.answerKey ? (state.quiz.answerKey[String(qno)] || '—') : '—';
                         const isCorrect = your !== '—' && correct !== '—' && your === correct;
                         const row = document.createElement('div');
-                        row.className = `p-3 md:p-4 rounded-xl glass-card flex items-center justify-between mb-2 ${isCorrect ? 'border border-green-300' : 'border border-red-300'}`;
+                        row.className = `p-3 rounded-xl glass-card flex items-center justify-between mb-2 ${isCorrect ? 'border border-green-300' : 'border border-red-300'}`;
                         row.innerHTML = `
                             <div>
                                 <div class="text-sm text-gray-500">${qno} 問目</div>
@@ -923,7 +927,7 @@
                 // Union of dates across both modes (in chronological order)
                 const allDates = Array.from(new Set(history.map(h => new Date(h.date).toDateString())));
                 // Sort by actual date
-                allDates.sort((a,b)=>b-a);
+                allDates.sort((a,b)=>new Date(a) - new Date(b));
                 labels = allDates.map(ds => new Date(ds).toLocaleDateString('ja-JP', { day: 'numeric', month: 'short' }));
 
                 function buildSeries(list) {
@@ -1046,7 +1050,7 @@
                             </div>
                             <div class="mt-4 flex items-center justify-between gap-2">
                                 <button id="pdf-prev" class="font-bold py-2.5 px-5 rounded-xl bg-purple-600 text-white shadow-lg ring-2 ring-purple-300 hover:bg-purple-700 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-purple-400 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-400 disabled:text-gray-100 disabled:ring-0">← 戻る</button>
-                                <button id="pdf-next" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700" onclick="handleNextQuestion()">次へ →</button>
+                                <button id="pdf-next" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">次へ →</button>
                             </div>
                         </div>
                     </div>
@@ -1095,6 +1099,9 @@
             const choiceStatus = document.getElementById('pdf-choice-status');
             const nextEl = document.getElementById('pdf-next');
             const prevEl = document.getElementById('pdf-prev');
+            const checkEl = document.getElementById('pdf-check');
+            // If key missing, keep check disabled
+            if (checkEl && !state.quiz.answerKey) checkEl.disabled = true;
             function renderMcqPanel() {
                 curEl.textContent = String(state.quiz.pdfIndex + 1);
                 const ans = state.quiz.userAnswers[state.quiz.pdfIndex];
@@ -1125,7 +1132,6 @@
                 btn.addEventListener('click', () => {
                     const choice = btn.getAttribute('data-choice');
                     state.quiz.userAnswers[state.quiz.pdfIndex] = { ...(state.quiz.userAnswers[state.quiz.pdfIndex]||{}), choice };
-                    updatePdfScore();
                     renderMcqPanel();
                 });
             });
@@ -1149,6 +1155,15 @@
             // Initialize panel
             state.quiz.pdfIndex = 0;
             renderMcqPanel();
+
+            // If key failed to load (likely file:// CORS), show inline help and disable check
+            const keyWarn = document.getElementById('pdf-key-warning');
+            if (!state.quiz.answerKey && keyWarn) {
+                keyWarn.classList.remove('hidden');
+                keyWarn.innerHTML = `解答キーを読み込めませんでした。HTTPサーバーで開いてください。<br>
+                    Windows(PowerShell): <code>cd frontend; python -m http.server 8000</code><br>
+                    その後: <a href="http://localhost:8000/" class="underline">http://localhost:8000/</a> を開く`;
+            }
         }
 
         // Theme: init from localStorage and toggle
@@ -1216,15 +1231,6 @@
             playlistToggle?.classList.toggle('hidden', !isOpening);
             if (!isOpening) buildPlaylistList(); // Update highlighting when showing list
         });
-        function toggleMusicPanel(show) {
-            const isHidden = musicPanel.classList.contains('hidden');
-            musicPanel.classList.toggle('hidden', show === false ? true : isHidden ? false : true);
-            // Ensure playlist button is visible when panel is opened
-            if (!musicPanel.classList.contains('hidden')) {
-                playlistToggle?.classList.remove('hidden');
-                playlistList?.classList.add('hidden');
-            }
-        }
         musicFab.addEventListener('click', (e) => {
             e.stopPropagation();
             const isHidden = musicPanel.classList.contains('hidden');
@@ -1272,6 +1278,55 @@
             startQuiz({ mode: 'simulation', subMode, year: year ? parseInt(year, 10) : null });
         }
         window.startSimulation = startSimulation;
+        
+        // ===== Category Practice: selection and start flow =====
+        let selectedCategories = new Set();
+        function getAllCategories(){
+            // Derive unique categories from available questions
+            const set = new Set(questions.map(q => q.category));
+            return Array.from(set);
+        }
+        function renderCategoryList(){
+            const listEl = document.getElementById('category-list');
+            const startBtn = document.getElementById('start-category-quiz-btn');
+            if (!listEl || !startBtn) return;
+            listEl.innerHTML = '';
+            const cats = getAllCategories();
+            cats.forEach(cat => {
+                const btn = document.createElement('button');
+                const isSelected = selectedCategories.has(cat);
+                btn.className = `p-3 rounded-xl border transition shadow-sm text-left ${isSelected ? 'bg-blue-600 text-white border-blue-700' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'}`;
+                btn.textContent = cat;
+                btn.addEventListener('click', () => {
+                    if (selectedCategories.has(cat)) {
+                        selectedCategories.delete(cat);
+                    } else {
+                        selectedCategories.add(cat);
+                    }
+                    renderCategoryList();
+                });
+                listEl.appendChild(btn);
+            });
+            startBtn.disabled = selectedCategories.size === 0;
+        }
+        function showCategorySelection(){
+            // Reset selection each time you open
+            selectedCategories = new Set();
+            navigateTo('category-view');
+            renderCategoryList();
+            const startBtn = document.getElementById('start-category-quiz-btn');
+            if (startBtn) {
+                // Remove previous listener if any by cloning
+                const newBtn = startBtn.cloneNode(true);
+                startBtn.parentNode.replaceChild(newBtn, startBtn);
+                newBtn.addEventListener('click', () => {
+                    const categories = Array.from(selectedCategories);
+                    if (categories.length === 0) return;
+                    startQuiz({ mode: 'category', categories });
+                });
+            }
+        }
+        window.showCategorySelection = showCategorySelection;
     });
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
