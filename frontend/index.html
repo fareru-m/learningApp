@@ -224,6 +224,36 @@
             <button id="start-category-quiz-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed disabled:bg-gray-400 disabled:text-gray-100 disabled:ring-0">カテゴリ練習を開始</button>
         </div>
 
+        <!-- ===== VIEW: KAKOMON QUIZ ===== -->
+        <div id="kakomon-quiz-view" class="view">
+            <header class="flex justify-between items-center mb-6 glass-card p-4 rounded-2xl">
+                <div>
+                    <button onclick="backToSimSetup()" class="text-blue-600 hover:text-blue-800 font-medium">&larr; 年度選択に戻る</button>
+                    <p id="kakomon-quiz-title" class="kid-title text-2xl font-bold text-gray-800 dark:text-gray-100"></p>
+                    <p id="kakomon-progress-info" class="text-sm font-medium text-gray-500"></p>
+                </div>
+                <div class="text-right">
+                    <p class="text-lg font-bold text-red-500" id="kakomon-timer">00:00</p>
+                    <p class="text-xs text-gray-500">残り時間</p>
+                </div>
+            </header>
+            <main>
+                 <div class="glass-card p-6 rounded-2xl mb-6 min-h-[120px]">
+                    <p id="kakomon-question" class="text-xl font-semibold text-gray-800"></p>
+                    <div id="kakomon-image-container" class="mt-4"></div>
+                </div>
+                <div id="kakomon-options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                <div class="mt-8 flex justify-between items-center">
+                    <button id="kakomon-end-btn" onclick="navigateTo('dashboard-view')" class="bg-gray-200 text-gray-800 font-bold py-2 px-5 rounded-lg hover:bg-gray-300 transition-colors">終了</button>
+                    <p id="kakomon-feedback" class="h-6 text-lg font-medium text-center flex-grow"></p>
+                    <div>
+                        <button id="kakomon-prev-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-5 rounded-lg hover:bg-gray-400 transition-colors">&larr; 前へ</button>
+                        <button id="kakomon-next-btn" class="bg-blue-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors">次へ &rarr;</button>
+                    </div>
+                </div>
+            </main>
+        </div>
+
         <!-- ===== VIEW: SIMULATION SETUP ===== -->
         <div id="simulation-setup-view" class="view">
             <div class="container mx-auto p-4 md:p-6">
