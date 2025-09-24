@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>基本情報技術者試験科目A　勉強アプリ</A></title>
+    <title>基本情報技術者試験　勉強アプリ</A></title>
     <!-- Chosen Palette: Calm Neutrals -->
     <!-- Application Structure Plan: The application is designed as a multi-view Single Page App (SPA) managed via JavaScript. The structure consists of a central 'Dashboard' acting as a hub, from which users can navigate to different learning modules: 'Quick Quiz', 'Exam Simulation', 'Category Practice', and 'Progress Tracker'. This hub-and-spoke model was chosen for its intuitive navigation, allowing users to easily select their desired task without a confusing linear flow. State (like the current view or quiz settings) is managed in a simple JavaScript object. This design separates user goals into clear, accessible sections, enhancing usability and focusing the learning experience. -->
     <!-- Visualization & Content Choices: 
@@ -239,14 +239,21 @@
                         <p class="text-gray-600 dark:text-gray-300 mb-4">本番形式のタイマー付き練習。</p>
                         <label class="block text-sm text-gray-600 dark:text-gray-300 mb-1">過去問の年度を選択</label>
                         <select id="year-regular" class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 mb-4"></select>
-                        <button class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700" onclick="startSimulation('regular')">開始</button>
+                        <button class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700" onclick="startSimulation('regular')">開始</button>
                     </div>
                     <div class="glass-card p-6 rounded-2xl">
                         <h2 class="kid-title text-xl font-bold text-gray-800 dark:text-gray-100 mb-2">科目A修了試験</h2>
                         <p class="text-gray-600 dark:text-gray-300 mb-4">仕上げの確認テスト。</p>
                         <label class="block text-sm text-gray-600 dark:text-gray-300 mb-1">過去問の年度を選択</label>
                         <select id="year-final" class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 mb-4"></select>
-                        <button class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700" onclick="startSimulation('final')">開始</button>
+                        <button class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700" onclick="startSimulation('final')">開始</button>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl">
+                        <h2 class="kid-title text-xl font-bold text-gray-800 dark:text-gray-100 mb-2">科目B試験</h2>
+                        <p class="text-gray-600 dark:text-gray-300 mb-4">本番形式のタイマー付き練習。</p>
+                        <label class="block text-sm text-gray-600 dark:text-gray-300 mb-1">過去問の年度を選択</label>
+                        <select id="year-kamokuB" class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 mb-4"></select>
+                        <button class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700" onclick="startSimulation('kamokuB')">開始</button>
                     </div>
                 </div>
             </div>
@@ -475,6 +482,33 @@
         
         window.navigateTo = navigateTo;
 
+        function resetQuizState() {
+            if (state.quiz.timerInterval) {
+                clearInterval(state.quiz.timerInterval);
+            }
+            state.quiz = {
+                questions: [],
+                currentIndex: 0,
+                score: 0,
+                mode: 'quick',
+                subMode: null,
+                year: null,
+                usePdf: false,
+                pdfSrc: null,
+                pdfIndex: 0,
+                answerKey: null,
+                userAnswers: [],
+                timerInterval: null
+            };
+            // Also clear relevant UI elements to be safe
+            const optionsContainer = document.getElementById('options-container');
+            if(optionsContainer) optionsContainer.innerHTML = '';
+            const questionEl = document.getElementById('question');
+            if(questionEl) questionEl.textContent = '';
+            const feedbackEl = document.getElementById('feedback');
+            if(feedbackEl) feedbackEl.textContent = '';
+        }
+
         function startQuiz(config) {
             // Stop any existing timer before resetting quiz state
             if (state.quiz && state.quiz.timerInterval) {
@@ -495,8 +529,13 @@
                 selectedQuestions = questions.sort(() => 0.5 - Math.random()).slice(0, 20);
                 const sub = config.subMode || 'regular';
                 if (sub === 'regular') {
-                    timeLimit = 30 * 60; // 30 minutes in seconds
-                    modeTitle = "⏱️ 科目A試験（30分２０問)";
+                    if (config.year === 'sample') {
+                        timeLimit = 90 * 60; // 90 minutes for sample
+                        modeTitle = "⏱️ 科目A試験（90分60問）";
+                    } else {
+                        timeLimit = 30 * 60; // 30 minutes for others
+                        modeTitle = "⏱️ 科目A試験（30分２０問）";
+                    }
                 } else {
                     timeLimit = 0; // no timer for final by default
                     modeTitle = "✅ 科目A修了認定試験";
@@ -788,7 +827,7 @@
             });
         }
         
-        function renderReview(){
+              function renderReview(){
             const container = document.getElementById('review-container');
             container.innerHTML = '';
             // PDF simulation mode: show per-question your answer vs correct answer from kakomon_answers.json
@@ -815,7 +854,8 @@
                         const warn = document.createElement('div');
                         warn.className = 'mb-3 p-3 rounded-lg bg-yellow-50 text-yellow-800 border border-yellow-200 text-sm';
                         warn.innerHTML = `解答キーを読み込めませんでした。HTTPサーバーで開いてください。<br>
-                            Windows(PowerShell): <code>cd frontend; python -m http.server 8000</code>`;
+                            Windows(PowerShell): <code>cd frontend; python -m http.server 8000</code><br>
+                            その後: <a href="http://localhost:8000/" class="underline">http://localhost:8000/</a> を開く`;
                         container.appendChild(warn);
                     }
 
@@ -850,7 +890,7 @@
                      <p class="kid-title text-lg">${index + 1}. ${answer.question}</p>
                      <p class="mt-2 text-sm ${answer.isCorrect ? 'text-green-600' : 'text-red-600'}">あなたの答え: ${answer.selected || '無回答'}</p>
                      ${!answer.isCorrect ? `<p class="text-sm text-blue-600">正解: ${answer.correct}</p>` : ''}
-                     <p class="mt-2 text-xs text-gray-500 bg-gray-50 p-2 rounded">${answer.explanation}</p>`;
+                     <p class="mt-2 text-xs bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-white p-3 rounded-lg">${answer.explanation}</p>`;
                  container.appendChild(el);
              });
          }
@@ -869,6 +909,47 @@
         function renderProgressPage() {
             const history = JSON.parse(localStorage.getItem('feQuizHistory')) || [];
             
+            // Populate Recent Results section
+            const recentResultsContainer = document.getElementById('recentResults');
+            if (recentResultsContainer) {
+                recentResultsContainer.innerHTML = ''; // Clear previous content
+                if (history.length === 0) {
+                    recentResultsContainer.innerHTML = `
+                        <div class="text-center py-8">
+                            <p class="text-gray-500 dark:text-gray-400 mb-4">まだ記録がありません。</p>
+                            <button onclick="startQuiz({mode: 'quick'})" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                                クイズを始める
+                            </button>
+                        </div>`;
+                } else {
+                    const recentAttempts = history.slice(-5).reverse(); // Get last 5, newest first
+                    recentAttempts.forEach(item => {
+                        const itemEl = document.createElement('div');
+                        itemEl.className = 'glass-card p-4 rounded-xl flex justify-between items-center';
+                        
+                        const modeMap = {
+                            'quick': '🚀 クイッククイズ',
+                            'simulation': '⏱️ 試験シミュレーション',
+                            'category': '📚 カテゴリ別練習'
+                        };
+                        const modeText = modeMap[item.mode] || '練習';
+                        const scorePercentage = item.total > 0 ? Math.round((item.score / item.total) * 100) : 0;
+
+                        itemEl.innerHTML = `
+                            <div>
+                                <p class="font-bold kid-title">${modeText}</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">${new Date(item.date).toLocaleString('ja-JP')}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-lg font-bold">${item.score} / ${item.total}</p>
+                                <p class="text-sm font-semibold ${scorePercentage >= 60 ? 'text-green-500' : 'text-red-500'}">${scorePercentage}%</p>
+                            </div>
+                        `;
+                        recentResultsContainer.appendChild(itemEl);
+                    });
+                }
+            }
+
             const tableBody = document.getElementById('history-table-body');
             if (tableBody) {
                 tableBody.innerHTML = '';
@@ -1023,7 +1104,14 @@
 
             // Show embedded PDF
             const src = state.quiz.pdfSrc;
-            const total = 20; // fixed
+            let total;
+            if (state.quiz.subMode === 'kamokuB') {
+                total = 20;
+            } else if (state.quiz.year === 'sample') {
+                total = 60; // 60 questions for the sample exam
+            } else {
+                total = 20; // 80 for regular Kamoku A exams
+            }
             const pdfHtml = src ? `
                 <div class="space-y-4">
                     <div class="pdf-container" style="height: 55vh;">
@@ -1254,28 +1342,47 @@
             originalNavigateTo(viewId);
         };
 
-        const simulationYears = [2023, 2024, 2025];
+        const simulationYears = ['sample', 2023, 2024, 2025];
         function populateSimulationYears() {
             const regSel = document.getElementById('year-regular');
             const finSel = document.getElementById('year-final');
-            if (!regSel || !finSel) return;
-            [regSel, finSel].forEach(sel => {
+            const kamokuBSel = document.getElementById('year-kamokuB');
+            if (!regSel || !finSel || !kamokuBSel) return;
+
+            // Custom sort: numbers descending, 'sample' comes after the most recent year.
+            const sortedYears = simulationYears.slice().sort((a, b) => {
+                if (a === 'sample') return -1; // 'sample' should be at the top
+                if (b === 'sample') return 1;
+                return b - a; // Sort numbers descending
+            });
+
+            [regSel, finSel, kamokuBSel].forEach(sel => {
                 sel.innerHTML = '';
-                simulationYears.slice().sort((a,b)=>b-a).forEach(y => {
+                sortedYears.forEach(y => {
                     const opt = document.createElement('option');
                     opt.value = y;
-                    opt.textContent = `${y}年`;
+                    // Display 'サンプル問題' for 'sample', otherwise 'YYYY年'
+                    opt.textContent = (y === 'sample') ? 'サンプル問題' : `${y}年`;
                     sel.appendChild(opt);
                 });
-                // Preselect most recent year
-                sel.value = simulationYears.slice().sort((a,b)=>b-a)[0];
+                // Preselect the top item (which will be 'sample' or the most recent year)
+                if (sortedYears.length > 0) {
+                    sel.value = sortedYears[0];
+                }
             });
         }
 
         function startSimulation(type) {
-            const year = type === 'regular' ? document.getElementById('year-regular')?.value : document.getElementById('year-final')?.value;
-            const subMode = type === 'regular' ? 'regular' : 'final';
-            startQuiz({ mode: 'simulation', subMode, year: year ? parseInt(year, 10) : null });
+            const yearEl = type === 'regular' ? document.getElementById('year-regular') :
+                         type === 'final' ? document.getElementById('year-final') :
+                         document.getElementById('year-kamokuB');
+            const year = yearEl?.value;
+
+            // For year, parse as int if it's a number, otherwise pass the string 'sample'
+            const yearValue = /\d{4}/.test(year) ? parseInt(year, 10) : year;
+
+            const subMode = type === 'regular' ? 'regular' : type === 'final' ? 'final' : 'kamokuB';
+            startQuiz({ mode: 'simulation', subMode, year: yearValue });
         }
         window.startSimulation = startSimulation;
         
