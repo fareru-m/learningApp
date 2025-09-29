@@ -186,7 +186,7 @@
         <div id="dashboard-view" class="view active">
             <header class="relative text-center mb-10 hero-subtle rounded-3xl p-8 shadow-sm">
                 <div class="absolute right-4 top-4 flex items-center gap-2"></div>
-                <h1 class="kid-title text-4xl md:text-5xl font-extrabold text-gray-800 dark:text-gray-100 tracking-tight">基本情報技術者試験科目A　勉強アプリ</h1>
+                <h1 class="kid-title text-4xl md:text-5xl font-extrabold text-gray-800 dark:text-gray-100 tracking-tight">基本情報技術者試験　勉強アプリ</h1>
                 <p class="mt-3 text-lg text-gray-600 dark:text-gray-300">学習モードを選択して、準備を始めましょう。</p>
                 <button onclick="startQuiz({mode: 'quick'})" class="mt-6 inline-flex items-center justify-center rainbow-btn font-semibold py-3 px-6 rounded-xl">はじめる ✨</button>
             </header>
@@ -222,36 +222,6 @@
                 <!-- Categories will be populated by JS -->
             </div>
             <button id="start-category-quiz-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed disabled:bg-gray-400 disabled:text-gray-100 disabled:ring-0">カテゴリ練習を開始</button>
-        </div>
-
-        <!-- ===== VIEW: KAKOMON QUIZ ===== -->
-        <div id="kakomon-quiz-view" class="view">
-            <header class="flex justify-between items-center mb-6 glass-card p-4 rounded-2xl">
-                <div>
-                    <button onclick="backToSimSetup()" class="text-blue-600 hover:text-blue-800 font-medium">&larr; 年度選択に戻る</button>
-                    <p id="kakomon-quiz-title" class="kid-title text-2xl font-bold text-gray-800 dark:text-gray-100"></p>
-                    <p id="kakomon-progress-info" class="text-sm font-medium text-gray-500"></p>
-                </div>
-                <div class="text-right">
-                    <p class="text-lg font-bold text-red-500" id="kakomon-timer">00:00</p>
-                    <p class="text-xs text-gray-500">残り時間</p>
-                </div>
-            </header>
-            <main>
-                 <div class="glass-card p-6 rounded-2xl mb-6 min-h-[120px]">
-                    <p id="kakomon-question" class="text-xl font-semibold text-gray-800"></p>
-                    <div id="kakomon-image-container" class="mt-4"></div>
-                </div>
-                <div id="kakomon-options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-                <div class="mt-8 flex justify-between items-center">
-                    <button id="kakomon-end-btn" onclick="navigateTo('dashboard-view')" class="bg-gray-200 text-gray-800 font-bold py-2 px-5 rounded-lg hover:bg-gray-300 transition-colors">終了</button>
-                    <p id="kakomon-feedback" class="h-6 text-lg font-medium text-center flex-grow"></p>
-                    <div>
-                        <button id="kakomon-prev-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-5 rounded-lg hover:bg-gray-400 transition-colors">&larr; 前へ</button>
-                        <button id="kakomon-next-btn" class="bg-blue-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors">次へ &rarr;</button>
-                    </div>
-                </div>
-            </main>
         </div>
 
         <!-- ===== VIEW: SIMULATION SETUP ===== -->
@@ -539,7 +509,7 @@
             if(feedbackEl) feedbackEl.textContent = '';
         }
 
-        function startQuiz(config) {
+        async function startQuiz(config) {
             // Stop any existing timer before resetting quiz state
             if (state.quiz && state.quiz.timerInterval) {
                 clearInterval(state.quiz.timerInterval);
@@ -556,9 +526,32 @@
                 selectedQuestions = questions.sort(() => 0.5 - Math.random()).slice(0, 10);
                 modeTitle = "🚀 クイッククイズ";
             } else if (config.mode === 'simulation') {
-                selectedQuestions = questions.sort(() => 0.5 - Math.random()).slice(0, 20);
                 const sub = config.subMode || 'regular';
                 if (sub === 'regular') {
+                    try {
+                        // The year is selected in the simulation setup view
+                        const year = document.getElementById('year-regular').value;
+                        
+                        const response = await fetch('./kakomon_questions.json');
+                        const allQuestions = await response.json();
+                        
+                        // Using bracket notation to handle year and exam type from memory
+                        const examYearData = allQuestions.exam_data.find(exam => exam.year == year);
+                        if (examYearData) {
+                            selectedQuestions = examYearData.questions;
+                        } else {
+                            selectedQuestions = null;}
+
+                        if (!selectedQuestions) {
+                            alert(`${year}年の科目A試験の問題が見つかりませんでした。`);
+                            return;
+                        }
+                        config.year = year; // Ensure year is in config for the title
+                    } catch (error) {
+                        console.error('Failed to load simulation questions:', error);
+                        alert('試験問題の読み込みに失敗しました。');
+                        return;
+                    }
                     if (config.year === 'sample') {
                         timeLimit = 90 * 60; // 90 minutes for sample
                         modeTitle = "⏱️ 科目A試験（90分60問）";
@@ -593,10 +586,7 @@
                 mode: config.mode,
                 subMode: config.subMode || null,
                 year: config.year || null,
-                usePdf: !!(config.mode === 'simulation' && (config.subMode || 'regular') === 'regular' && config.year),
-                pdfSrc: (config.mode === 'simulation' && (config.subMode || 'regular') === 'regular' && config.year)
-                    ? `../kakomon/${config.year}A_Q.pdf`
-                    : null,
+                
                 pdfIndex: 0,
                 answerKey: null,
                 userAnswers: [],
@@ -653,65 +643,83 @@
         function displayQuestion() {
             const quiz = state.quiz;
             const q = quiz.questions[quiz.currentIndex];
-            document.getElementById('question').textContent = q.question;
+            const questionContainer = document.getElementById('question');
+            
+            questionContainer.innerHTML = `<p>${q.question}</p>`;
+
+            if (q.image_file) {
+                const img = document.createElement('img');
+                img.src = q.image_file;
+                img.alt = `Question ${q.id} image`;
+                img.className = 'mt-4 rounded-lg shadow-md mx-auto';
+                questionContainer.appendChild(img);
+            }
             
             const progressInfoEl = document.getElementById('progress-info');
-            if (quiz.mode === 'category') {
-                progressInfoEl.style.display = 'none';
-            } else {
-                progressInfoEl.style.display = 'block';
-                progressInfoEl.textContent = `問題 ${quiz.currentIndex + 1} / ${quiz.questions.length}`;
-            }
+            progressInfoEl.style.display = (quiz.mode === 'category') ? 'none' : 'block';
+            progressInfoEl.textContent = `問題 ${quiz.currentIndex + 1} / ${quiz.questions.length}`;
 
             const optionsContainer = document.getElementById('options-container');
             optionsContainer.innerHTML = '';
             document.getElementById('feedback').textContent = '';
             
             const nextBtn = document.getElementById('next-btn');
-            if (quiz.mode === 'category') {
-                nextBtn.textContent = '次へ →';
-            } else {
-                nextBtn.textContent = (quiz.currentIndex === quiz.questions.length - 1) ? '結果を見る' : '次へ →';
-            }
+            nextBtn.textContent = (quiz.currentIndex === quiz.questions.length - 1 && quiz.mode !== 'category') ? '結果を見る' : '次へ →';
 
-            q.options.forEach(option => {
-                const button = document.createElement('button');
-                button.textContent = option;
-                button.classList.add('option-btn', 'w-full', 'p-4', 'border', 'border-gray-300', 'rounded-lg', 'text-left', 'hover:bg-gray-100', 'transition-colors');
-                button.onclick = () => selectAnswer(option, button);
-                optionsContainer.appendChild(button);
-            });
+            // Check if options is an object (new format) or an array (old format)
+            if (Array.isArray(q.options)) {
+                // --- Handle old array format for Quick Quiz ---
+                q.options.forEach(optionText => {
+                    const button = document.createElement('button');
+                    button.textContent = optionText;
+                    button.classList.add('option-btn', 'w-full', 'p-4', 'border', 'rounded-lg', 'text-left', 'transition-colors');
+                    button.onclick = () => selectAnswer(optionText, button);
+                    optionsContainer.appendChild(button);
+                });
+            } else {
+                // --- Handle new object format for Simulations ---
+                Object.entries(q.options).forEach(([key, value]) => {
+                    const button = document.createElement('button');
+                    button.textContent = `${key}. ${value}`;
+                    button.dataset.optionKey = key;
+                    button.classList.add('option-btn', 'w-full', 'p-4', 'border', 'rounded-lg', 'text-left', 'transition-colors');
+                    button.onclick = () => selectAnswer(key, button);
+                    optionsContainer.appendChild(button);
+                });
+            }
         }
 
-        function selectAnswer(selectedOption, buttonEl) {
+        function selectAnswer(selected, buttonEl) {
             const quiz = state.quiz;
-            
-            // Allow selecting/deselecting only in simulation mode before moving on
+            const q = quiz.questions[quiz.currentIndex];
+            // The correct answer could be the full text (old) or a key (new)
+            const correctAnswer = q.answer; 
+
             if(quiz.mode === 'simulation') {
                 Array.from(document.querySelectorAll('.option-btn')).forEach(btn => btn.classList.remove('selected'));
                 buttonEl.classList.add('selected');
                 state.quiz.userAnswers[state.quiz.currentIndex] = {
-                    question: quiz.questions[quiz.currentIndex].question,
-                    selected: selectedOption,
-                    correct: quiz.questions[quiz.currentIndex].answer,
-                    explanation: quiz.questions[quiz.currentIndex].explanation,
-                    isCorrect: selectedOption === quiz.questions[quiz.currentIndex].answer
+                    question: q.question,
+                    selected: selected,
+                    correct: correctAnswer,
+                    explanation: q.explanation,
+                    isCorrect: selected === correctAnswer
                 };
-            } else { // For quick quiz and category, show immediate feedback
+            } else { 
                 Array.from(document.querySelectorAll('.option-btn')).forEach(btn => {
                     btn.disabled = true;
-                    if(btn.textContent === quiz.questions[quiz.currentIndex].answer) {
+                    // Check if button's key or text matches the answer
+                    const btnIdentifier = btn.dataset.optionKey || btn.textContent;
+                    if(btnIdentifier === correctAnswer) {
                         btn.classList.add('correct');
                     }
                 });
                 
-                const isCorrect = selectedOption === quiz.questions[quiz.currentIndex].answer;
+                const isCorrect = selected === correctAnswer;
                 const feedbackEl = document.getElementById('feedback');
 
                 if(isCorrect){
-                    if (quiz.mode !== 'category') {
-                        state.quiz.score++;
-                    }
+                    if (quiz.mode !== 'category') state.quiz.score++;
                     buttonEl.classList.add('correct');
                     feedbackEl.textContent = "正解！";
                     feedbackEl.className = 'h-6 text-lg font-medium text-center flex-grow text-green-500';
@@ -720,11 +728,11 @@
                     feedbackEl.textContent = "不正解！";
                     feedbackEl.className = 'h-6 text-lg font-medium text-center flex-grow text-red-500';
                 }
-                 state.quiz.userAnswers[state.quiz.currentIndex] = {
-                    question: quiz.questions[quiz.currentIndex].question,
-                    selected: selectedOption,
-                    correct: quiz.questions[quiz.currentIndex].answer,
-                    explanation: quiz.questions[quiz.currentIndex].explanation,
+                state.quiz.userAnswers[state.quiz.currentIndex] = {
+                    question: q.question,
+                    selected: selected,
+                    correct: correctAnswer,
+                    explanation: q.explanation,
                     isCorrect: isCorrect
                 };
             }

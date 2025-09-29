@@ -19,30 +19,11 @@ let currentState = {
     currentQuestionIndex: 0,
     userAnswers: {},
     examMode: false,
-    history: [],
-    kakomon: {
-        questions: [],
-        currentIndex: 0,
-        userAnswers: {},
-        timer: null,
-        examData: null
-    }
+    history: []
 };
 
 // Progress tracking
 const PROGRESS_KEY = 'learningProgress';
-
-async function startKakomonQuiz(year) {}
-
-function renderKakomonQuestion() {}
-
-function selectKakomonAnswer(selection) {}
-
-function updateKakomonNavButtons() {}
-
-function backToSimSetup() {
-    navigateTo('simulation-setup-view');
-}
 
 function saveProgress(mode, score, category = null) {
     const progress = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}');
