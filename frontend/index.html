@@ -680,9 +680,32 @@
                 // --- Handle new object format for Simulations ---
                 Object.entries(q.options).forEach(([key, value]) => {
                     const button = document.createElement('button');
-                    button.textContent = `${key}. ${value}`;
-                    button.dataset.optionKey = key;
-                    button.classList.add('option-btn', 'w-full', 'p-4', 'border', 'rounded-lg', 'text-left', 'transition-colors');
+                    button.classList.add('option-btn', 'w-full', 'p-4', 'border', 'rounded-lg', 'text-left', 'transition-colors', 'flex', 'items-center');
+// Ubah p-4 menjadi p-6 untuk padding yang lebih lebar
+                    
+                    // Cek apakah value adalah path gambar (berekstensi .jpg, .png, dll)
+                    const isImage = /\.(jpg|jpeg|png|gif)$/i.test(value);
+                    
+                    if (isImage) {
+                        // Jika value adalah path gambar
+                        const img = document.createElement('img');
+                        img.src = value;
+                        img.alt = `Option ${key}`;
+                        img.className = 'max-w-full h-auto max-h-64 mr-3 w-auto';  
+
+                        // Buat container untuk teks dan gambar
+                        const container = document.createElement('div');
+                        container.className = 'flex items-center';
+                        container.innerHTML = `<span class="mr-2 font-bold">${key}.</span>`;
+                        container.appendChild(img);
+                        
+                        button.innerHTML = '';  // Hapus teks default
+                        button.appendChild(container);
+                    } else {
+                        // Jika value adalah teks biasa
+                        button.textContent = `${key}. ${value}`;
+                    }
+                    
                     button.onclick = () => selectAnswer(key, button);
                     optionsContainer.appendChild(button);
                 });
@@ -700,10 +723,9 @@
                 buttonEl.classList.add('selected');
                 state.quiz.userAnswers[state.quiz.currentIndex] = {
                     question: q.question,
-                    selected: selected,
-                    correct: correctAnswer,
+                    choice: selected,                    
                     explanation: q.explanation,
-                    isCorrect: selected === correctAnswer
+                    
                 };
             } else { 
                 Array.from(document.querySelectorAll('.option-btn')).forEach(btn => {
@@ -754,38 +776,59 @@
                     quiz.currentIndex++;
                     displayQuestion();
                 } else {
-                    showResults();
+                    (async () => {
+                        await showResults();
+                    })();
                 }
             }
         }
 
-        function showResults() {
+        async function showResults() {
+            if (state.quiz.mode === 'simulation' && !state.quiz.answerKey) {
+                try {
+                    const res = await fetch('./kakomon_answers.json');
+                    const all = await res.json();
+                    const yearKey = String(state.quiz.year);
+                    state.quiz.answerKey = all?.['科目A試験']?.[yearKey] || null;
+                } catch(e) { 
+                    console.error('Gagal memuat kunci jawaban:', e);
+                }
+            }
+            
             clearInterval(state.quiz.timerInterval);
             state.quiz.timerInterval = null;
             const timerEl = document.getElementById('timer');
             if (timerEl) timerEl.textContent = '00:00';
-            // Optionally hide timer after finishing
             const tc = document.getElementById('timer-container');
             if (tc) tc.classList.add('hidden');
             
-            if (state.quiz.mode === 'simulation') {
-                // For PDF mode, compute score from choices vs answer key; otherwise fall back to existing logic
-                if (state.quiz.usePdf && state.quiz.answerKey) {
-                    const total = 20; // fixed
-                    let correct = 0;
-                    for (let i = 0; i < total; i++) {
-                        const idx = String(i + 1);
-                        const choice = state.quiz.userAnswers[i]?.choice;
-                        if (choice && state.quiz.answerKey[idx] && state.quiz.answerKey[idx] === choice) correct++;
-                    }
-                    state.quiz.score = correct;
-                } else {
-                    let correctCount = 0;
-                    state.quiz.userAnswers.forEach(ans => {
-                        if (ans && ans.isCorrect) correctCount++;
+            // Debug log
+            console.log('Quiz Mode:', state.quiz.mode);
+            console.log('Answer Key exists:', !!state.quiz.answerKey);
+            
+            if (state.quiz.mode === 'simulation' && state.quiz.answerKey) {
+                const total = Object.keys(state.quiz.answerKey).length;
+                let correct = 0;
+                
+                // Hitung jawaban yang benar
+                for (let i = 0; i < total; i++) {
+                    const qno = i + 1;
+                    const userAnswer = state.quiz.userAnswers[i]?.choice;
+                    const correctAnswer = state.quiz.answerKey[String(qno)];
+                    
+                    console.log(`Pertanyaan ${qno}:`, {
+                        userAnswer,
+                        correctAnswer,
+                        match: userAnswer === correctAnswer
                     });
-                    state.quiz.score = correctCount;
+                    
+                    if (userAnswer && correctAnswer && userAnswer.trim() === correctAnswer.trim()) {
+                        correct++;
+                    }
                 }
+                
+                console.log('Total Benar:', correct);
+                state.quiz.score = correct;
             }
 
             saveAttempt();
@@ -869,8 +912,7 @@
             const container = document.getElementById('review-container');
             container.innerHTML = '';
             // PDF simulation mode: show per-question your answer vs correct answer from kakomon_answers.json
-            if (state.quiz.usePdf) {
-                const total = 20; // fixed
+            if (state.quiz.mode === 'simulation') {
                 async function ensureAnswerKeyForReview(){
                     if (state.quiz.answerKey) return;
                     try {
@@ -896,6 +938,9 @@
                             その後: <a href="http://localhost:8000/" class="underline">http://localhost:8000/</a> を開く`;
                         container.appendChild(warn);
                     }
+
+                    
+                    const total = Object.keys(state.quiz.answerKey).length;
 
                     for (let i = 0; i < total; i++) {
                         const qno = i + 1;
