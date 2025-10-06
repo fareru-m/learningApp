@@ -238,6 +238,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 togglePomodoroModal(true);
             }
         });
+
+        // Wire quiz controls (next / end)
+        document.addEventListener('click', (e) => {
+            if (e.target && e.target.id === 'next-btn') {
+                e.preventDefault();
+                if (!currentState.questions || currentState.questions.length === 0) return;
+                if (currentState.currentQuestionIndex < currentState.questions.length - 1) {
+                    currentState.currentQuestionIndex += 1;
+                    renderQuestion(currentState.currentQuestionIndex);
+                } else {
+                    // finished
+                    alert('すべての問題に到達しました。結果画面は未実装です。');
+                }
+            }
+
+            if (e.target && e.target.id === 'end-btn') {
+                // hide nav and return to home/dashboard
+                const qNav = document.getElementById('question-nav');
+                if (qNav) qNav.classList.add('hidden');
+                // show home/dashboard
+                document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+                const dashboard = document.getElementById('dashboard-view');
+                if (dashboard) dashboard.classList.add('active');
+            }
+        });
     }
 
     // --- View Management ---
@@ -321,6 +346,137 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Functions ---
+
+    // Start a simulation: load questions and show quiz view with nav
+    async function startSimulation(subMode) {
+        try {
+            // For now, reuse currentState.questions or load from local JSON if present
+            // If your app uses remote API, replace with fetch to correct endpoint
+            let questions = currentState.questions || [];
+            if (!questions || questions.length === 0) {
+                // fallback: try loading a local file 'kakomon_questions.json'
+                try {
+                    const res = await fetch('./kakomon_questions.json');
+                    const parsed = await res.json();
+                    // Attempt to flatten into an array of questions if structure differs
+                    if (Array.isArray(parsed)) questions = parsed;
+                    else if (parsed.exam_data) {
+                        // pick first exam set as fallback
+                        questions = parsed.exam_data[0]?.questions || [];
+                    }
+                } catch (e) {
+                    console.warn('No local kakomon_questions.json found or failed to load:', e);
+                }
+            }
+    
+            if (!questions || questions.length === 0) {
+                alert('試験用の問題が見つかりませんでした。');
+                return;
+            }
+    
+            currentState.questions = questions;
+            currentState.currentQuestionIndex = 0;
+            currentState.examMode = true;
+    
+            // Ensure quiz view is visible and nav populated
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById('quiz-view').classList.add('active');
+            const qNav = document.getElementById('question-nav');
+            if (qNav) qNav.classList.remove('hidden');
+    
+            populateQuestionNav(questions.length);
+            renderQuestion(0);
+    
+        } catch (err) {
+            console.error('startSimulation error', err);
+            alert('シミュレーションの開始に失敗しました。コンソールを確認してください。');
+        }
+    }
+    
+    window.startSimulation = startSimulation;
+    
+    function populateQuestionNav(questionCount) {
+        const navContainer = document.getElementById('question-nav-buttons');
+        if (!navContainer) return;
+        navContainer.innerHTML = '';
+        if (!questionCount || questionCount <= 0) {
+            console.warn('populateQuestionNav called with empty count');
+            return;
+        }
+        for (let i = 0; i < questionCount; i++) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = i + 1;
+            button.dataset.index = i;
+            button.className = 'w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors text-sm font-medium bg-transparent';
+            button.addEventListener('click', () => jumpToQuestion(i));
+            navContainer.appendChild(button);
+        }
+        // highlight first
+        highlightNavButton(0);
+    }
+    
+    function jumpToQuestion(index) {
+        if (index < 0 || index >= currentState.questions.length) return;
+        currentState.currentQuestionIndex = index;
+        renderQuestion(index);
+        highlightNavButton(index);
+    }
+    
+    function highlightNavButton(index) {
+        const navButtons = document.querySelectorAll('#question-nav-buttons button');
+        navButtons.forEach(btn => {
+            btn.classList.remove('bg-blue-500','text-white','ring-2','ring-blue-300');
+        });
+        const active = document.querySelector(`#question-nav-buttons button[data-index='${index}']`);
+        if (active) active.classList.add('bg-blue-500','text-white','ring-2','ring-blue-300');
+    }
+
+    function renderQuestion(index) {
+        const q = currentState.questions[index];
+        if (!q) {
+            console.warn('renderQuestion: question not found at index', index);
+            return;
+        }
+        // set question text
+        const questionEl = document.getElementById('question');
+        if (questionEl) questionEl.innerHTML = `<p>${q.question || q.text || '（問題が見つかりません）'}</p>`;
+
+        // progress info
+        const progressInfoEl = document.getElementById('progress-info');
+        if (progressInfoEl) progressInfoEl.textContent = `問題 ${index + 1} / ${currentState.questions.length}`;
+
+        // options
+        const optionsContainer = document.getElementById('options-container');
+        if (optionsContainer) optionsContainer.innerHTML = '';
+
+        if (Array.isArray(q.options)) {
+            q.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn w-full p-4 border rounded-lg text-left transition-colors';
+                btn.textContent = opt;
+                btn.addEventListener('click', () => {
+                    currentState.userAnswers[index] = opt;
+                    btn.classList.add('selected');
+                });
+                optionsContainer.appendChild(btn);
+            });
+        } else if (q.options && typeof q.options === 'object') {
+            Object.entries(q.options).forEach(([key, value]) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn w-full p-4 border rounded-lg text-left transition-colors flex items-center';
+                btn.textContent = `${key}. ${value}`;
+                btn.addEventListener('click', () => {
+                    currentState.userAnswers[index] = key;
+                    btn.classList.add('selected');
+                });
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        // update highlight on nav
+        highlightNavButton(index);
+    }
 
     /**
      * Handles clicks on the main navigation items.

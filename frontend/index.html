@@ -144,6 +144,37 @@
             position: fixed; bottom: 5.5rem; right: 1rem; z-index: 60;
             width: 340px; max-width: calc(100vw - 2rem);
         }
+        /* Question nav (left panel) styling */
+        #question-nav { padding: 0.5rem; }
+        #question-nav-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(44px, 1fr));
+            gap: 0.6rem;
+            align-items: center;
+        }
+        #question-nav-buttons button {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 0.25rem 0.5rem;
+            border-radius: 10px;
+            letter-spacing: 0.5px;
+        }
+        /* Make the nav scrollbars thinner and visible on dark bg */
+        #question-nav {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.12) transparent;
+        }
+        /* Webkit scrollbar tweaks */
+        #question-nav::-webkit-scrollbar { width: 10px; height: 10px; }
+        #question-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 8px; }
+        #question-nav::-webkit-scrollbar-track { background: transparent; }
+        @media (min-width: 768px) {
+            #question-nav-buttons { grid-template-columns: repeat(4, minmax(48px, 1fr)); gap: 0.65rem; }
+        }
+        @media (min-width: 1024px) {
+            #question-nav-buttons { grid-template-columns: repeat(3, minmax(50px, 1fr)); gap: 0.8rem; }
+            #question-nav-buttons button { min-width: 50px; min-height: 50px; }
+        }
         @media (min-width: 640px) { .music-panel { width: 380px; } }
         /* Music panel nav arrows */
         .player-wrap { position: relative; }
@@ -271,17 +302,28 @@
                     <p class="text-xs text-gray-500">残り時間</p>
                 </div>
             </header>
-            <main>
-                 <div class="glass-card p-6 rounded-2xl mb-6 min-h-[120px]">
-                    <p id="question" class="text-xl font-semibold text-gray-800"></p>
-                </div>
-                <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-                <div class="mt-8 flex justify-between items-center">
-                    <button id="end-btn" onclick="navigateTo('dashboard-view')" class="bg-gray-200 text-gray-800 font-bold py-2 px-5 rounded-lg hover:bg-gray-300 transition-colors">終了</button>
-                    <p id="feedback" class="h-6 text-lg font-medium text-center flex-grow"></p>
-                    <button id="next-btn" class="bg-blue-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors">次へ &rarr;</button>
-                </div>
-            </main>
+            <div class="flex flex-col md:flex-row gap-6">
+                <nav id="question-nav" class="hidden md:block w-full md:w-1/5 glass-card p-3 rounded-2xl self-start max-h-[60vh] overflow-y-auto">
+                    <div class="p-4 rounded-lg bg-gradient-to-b from-gray-900/10 to-transparent text-center mb-3">
+                        <h3 class="kid-title text-white font-bold">Soal</h3>
+                    </div>
+                    <div id="question-nav-buttons" class="grid grid-cols-6 gap-2 px-2 pb-2">
+                        <!-- Navigation buttons will be populated here -->
+                    </div>
+                </nav>
+
+                <main class="w-full md:w-4/5">
+                    <div class="glass-card p-6 rounded-2xl mb-6 min-h-[120px]">
+                        <p id="question" class="text-xl font-semibold text-gray-800"></p>
+                    </div>
+                    <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                    <div class="mt-8 flex justify-between items-center">
+                        <button id="end-btn" onclick="navigateTo('dashboard-view')" class="bg-gray-200 text-gray-800 font-bold py-2 px-5 rounded-lg hover:bg-gray-300 transition-colors">終了</button>
+                        <p id="feedback" class="h-6 text-lg font-medium text-center flex-grow"></p>
+                        <button id="next-btn" class="bg-blue-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors">次へ &rarr;</button>
+                    </div>
+                </main>
+            </div>
         </div>
 
         <!-- ===== VIEW: RESULTS ===== -->
@@ -610,6 +652,17 @@
             } else {
                 displayQuestion();
             }
+            // If this is a simulation, populate left-side question navigation
+            if (state.quiz.mode === 'simulation') {
+                try {
+                    const count = state.quiz.questions ? state.quiz.questions.length : 0;
+                    if (typeof populateQuestionNav === 'function' && count > 0) {
+                        populateQuestionNav(count);
+                    }
+                } catch (e) {
+                    console.warn('Failed to populate question nav:', e);
+                }
+            }
         }
         
         window.startQuiz = startQuiz;
@@ -665,6 +718,11 @@
             
             const nextBtn = document.getElementById('next-btn');
             nextBtn.textContent = (quiz.currentIndex === quiz.questions.length - 1 && quiz.mode !== 'category') ? '結果を見る' : '次へ →';
+
+            // Update left nav active state if present
+            if (quiz.mode === 'simulation' && typeof highlightNavButton === 'function') {
+                highlightNavButton(quiz.currentIndex);
+            }
 
             // Check if options is an object (new format) or an array (old format)
             if (Array.isArray(q.options)) {
@@ -987,6 +1045,35 @@
                 total: state.quiz.questions.length
             });
             localStorage.setItem('feQuizHistory', JSON.stringify(history));
+        }
+
+        // --- Question navigation helpers (left panel) ---
+        function populateQuestionNav(questionCount) {
+            const navContainer = document.getElementById('question-nav-buttons');
+            if (!navContainer) return;
+            navContainer.innerHTML = '';
+            if (!questionCount || questionCount <= 0) return;
+            for (let i = 0; i < questionCount; i++) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = i + 1;
+                btn.dataset.index = i;
+                btn.className = 'w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors text-sm font-medium bg-transparent';
+                btn.addEventListener('click', () => {
+                    state.quiz.currentIndex = i;
+                    displayQuestion();
+                    highlightNavButton(i);
+                });
+                navContainer.appendChild(btn);
+            }
+            highlightNavButton(0);
+        }
+
+        function highlightNavButton(index) {
+            const navButtons = document.querySelectorAll('#question-nav-buttons button');
+            navButtons.forEach(btn => btn.classList.remove('bg-blue-500','text-white','ring-2','ring-blue-300'));
+            const active = document.querySelector(`#question-nav-buttons button[data-index='${index}']`);
+            if (active) active.classList.add('bg-blue-500','text-white','ring-2','ring-blue-300');
         }
 
         function renderProgressPage() {
