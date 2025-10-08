@@ -145,11 +145,16 @@
             width: 340px; max-width: calc(100vw - 2rem);
         }
         /* Question nav (left panel) styling */
-        #question-nav { padding: 0.5rem; }
+        #question-nav { padding: 0.75rem; }
+        /* Make nav wider on medium+ screens so numbers fit without scrolling */
+        #question-nav { width: 220px; }
+        @media (min-width: 768px) { #question-nav { width: 260px; } }
+        @media (min-width: 1024px) { #question-nav { width: 300px; } }
+
         #question-nav-buttons {
             display: grid;
-            grid-template-columns: repeat(3, minmax(44px, 1fr));
-            gap: 0.6rem;
+            grid-template-columns: repeat(3, minmax(48px, 1fr));
+            gap: 0.75rem;
             align-items: center;
         }
         #question-nav-buttons button {
@@ -169,11 +174,20 @@
         #question-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 8px; }
         #question-nav::-webkit-scrollbar-track { background: transparent; }
         @media (min-width: 768px) {
-            #question-nav-buttons { grid-template-columns: repeat(4, minmax(48px, 1fr)); gap: 0.65rem; }
+            #question-nav-buttons { grid-template-columns: repeat(4, minmax(50px, 1fr)); gap: 0.75rem; }
         }
         @media (min-width: 1024px) {
-            #question-nav-buttons { grid-template-columns: repeat(3, minmax(50px, 1fr)); gap: 0.8rem; }
-            #question-nav-buttons button { min-width: 50px; min-height: 50px; }
+            #question-nav-buttons { grid-template-columns: repeat(3, minmax(54px, 1fr)); gap: 0.9rem; }
+            #question-nav-buttons button { min-width: 54px; min-height: 54px; }
+        }
+        /* Answered state for nav buttons (blue) */
+        #question-nav-buttons button.answered {
+            background: linear-gradient(180deg, rgba(59,130,246,1), rgba(37,99,235,1));
+            color: #fff;
+            border-color: rgba(37,99,235,0.9);
+        }
+        #question-nav-buttons button.answered:hover {
+            filter: brightness(0.95);
         }
         @media (min-width: 640px) { .music-panel { width: 380px; } }
         /* Music panel nav arrows */
@@ -574,7 +588,7 @@
                         // The year is selected in the simulation setup view
                         const year = document.getElementById('year-regular').value;
                         
-                        const response = await fetch('./kakomon_questions.json');
+                        const response = await fetch('./kakomon_questionsA.json');
                         const allQuestions = await response.json();
                         
                         // Using bracket notation to handle year and exam type from memory
@@ -602,11 +616,66 @@
                         modeTitle = "⏱️ 科目A試験（30分２０問）";
                     }
                 } else {
+                    // 科目A修了試験: load monthly-stamped questions from kakomon_questionsS.json
                     timeLimit = 0; // no timer for final by default
                     modeTitle = "✅ 科目A修了認定試験";
+                    try {
+                        const yearSel = document.getElementById('year-final');
+                        const selected = yearSel?.value;
+                        const res = await fetch('./kakomon_questionsS.json');
+                        const allS = await res.json();
+
+                        // If file uses exam_data array
+                        if (Array.isArray(allS?.exam_data)) {
+                            // Try to find exact match by year (number) first
+                            const numSelected = parseInt(selected, 10);
+                            let entry = allS.exam_data.find(e => Number(e.year) === numSelected);
+                            if (!entry) {
+                                // If user selected just a year (e.g., '2025'), pick latest month for that year
+                                const yearPrefix = String(selected).slice(0,4);
+                                const candidates = allS.exam_data.filter(e => String(e.year).startsWith(yearPrefix));
+                                if (candidates.length > 0) {
+                                    candidates.sort((a,b) => Number(b.year) - Number(a.year));
+                                    entry = candidates[0];
+                                }
+                            }
+                            if (!entry) {
+                                alert(`${selected} の科目A修了試験（Sデータ）が見つかりませんでした。`);
+                                return;
+                            }
+                            selectedQuestions = entry.questions || entry;
+                            config.year = String(entry.year);
+                        } else {
+                            // legacy: top-level keys like '202507'
+                            const year = String(selected);
+                            const keys = Object.keys(allS || {}).filter(k => k.startsWith(year));
+                            if (keys.length === 0) {
+                                alert(`${year}年の科目A修了試験（Sデータ）が見つかりませんでした。`);
+                                return;
+                            }
+                            const chosenKey = keys.map(k => parseInt(k, 10)).sort((a, b) => b - a)[0].toString();
+                            selectedQuestions = allS[chosenKey]?.questions || allS[chosenKey] || null;
+                            if (!selectedQuestions || selectedQuestions.length === 0) {
+                                alert(`${chosenKey} の問題が見つかりませんでした。`);
+                                return;
+                            }
+                            config.year = chosenKey;
+                        }
+                    } catch (err) {
+                        console.error('Failed to load kakomon_questionsS.json for final exam:', err);
+                        alert('科目A修了試験の問題読み込みに失敗しました。');
+                        return;
+                    }
                 }
                 if (config.year) {
-                    modeTitle += `（${config.year}年 過去問）`;
+                    // If final subMode stored YYYYMM (e.g., 202507), format as '2025年7月 過去問'
+                    if (config.subMode === 'final' && String(config.year).length === 6) {
+                        const y = String(config.year).slice(0,4);
+                        const m = String(config.year).slice(4).replace(/^0/, '');
+                        modeTitle += `（${y}年${m}月 過去問）`;
+                    } else {
+                        modeTitle += `（${config.year}年 過去問）`;
+                    }
                 }
              } else if (config.mode === 'category') {
                  selectedQuestions = questions.filter(q => config.categories.includes(q.category)).sort(() => 0.5 - Math.random());
@@ -647,21 +716,29 @@
             document.getElementById('next-btn').onclick = () => handleNextQuestion();
             
             navigateTo('quiz-view');
+            // Show/hide left-side question navigation only for simulation mode
+            try {
+                const navEl = document.getElementById('question-nav');
+                if (navEl) {
+                    if (state.quiz.mode === 'simulation') {
+                        navEl.classList.remove('hidden');
+                        const count = state.quiz.questions ? state.quiz.questions.length : 0;
+                        if (typeof populateQuestionNav === 'function' && count > 0) {
+                            populateQuestionNav(count);
+                        }
+                    } else {
+                        // hide nav for Quick Quiz and Category Practice
+                        navEl.classList.add('hidden');
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to toggle question nav visibility:', e);
+            }
+
             if (state.quiz.usePdf) {
                 renderSimulationPDF();
             } else {
                 displayQuestion();
-            }
-            // If this is a simulation, populate left-side question navigation
-            if (state.quiz.mode === 'simulation') {
-                try {
-                    const count = state.quiz.questions ? state.quiz.questions.length : 0;
-                    if (typeof populateQuestionNav === 'function' && count > 0) {
-                        populateQuestionNav(count);
-                    }
-                } catch (e) {
-                    console.warn('Failed to populate question nav:', e);
-                }
             }
         }
         
@@ -698,7 +775,12 @@
             const q = quiz.questions[quiz.currentIndex];
             const questionContainer = document.getElementById('question');
             
-            questionContainer.innerHTML = `<p>${q.question}</p>`;
+            // Insert question text as plain text and preserve newlines using CSS
+            questionContainer.innerHTML = '';
+            const p = document.createElement('p');
+            p.textContent = q.question || '';
+            p.style.whiteSpace = 'pre-wrap'; // preserve \n as line breaks
+            questionContainer.appendChild(p);
 
             if (q.image_file) {
                 const img = document.createElement('img');
@@ -785,6 +867,8 @@
                     explanation: q.explanation,
                     
                 };
+                // mark left nav button as answered (only for simulation mode)
+                try { if (quiz.mode === 'simulation') markNavAnswered(quiz.currentIndex); } catch(e) { console.warn('markNavAnswered failed', e); }
             } else { 
                 Array.from(document.querySelectorAll('.option-btn')).forEach(btn => {
                     btn.disabled = true;
@@ -815,6 +899,8 @@
                     explanation: q.explanation,
                     isCorrect: isCorrect
                 };
+                // mark left nav as answered only for simulation mode
+                try { if (quiz.mode === 'simulation') markNavAnswered(quiz.currentIndex); } catch(e) { console.warn('markNavAnswered failed', e); }
             }
         }
         
@@ -971,13 +1057,20 @@
             container.innerHTML = '';
             // PDF simulation mode: show per-question your answer vs correct answer from kakomon_answers.json
             if (state.quiz.mode === 'simulation') {
-                async function ensureAnswerKeyForReview(){
+                    async function ensureAnswerKeyForReview(){
                     if (state.quiz.answerKey) return;
                     try {
                         const res = await fetch('./kakomon_answers.json');
                         const all = await res.json();
                         const yearKey = String(state.quiz.year);
-                        state.quiz.answerKey = all?.['科目A試験']?.[yearKey] || null;
+                        // Try exact key (YYYYMM) first, then fallback to YYYY only
+                        let key = yearKey;
+                        let ans = all?.['科目A試験']?.[key] || null;
+                        if (!ans && yearKey.length === 6) {
+                            key = yearKey.slice(0,4);
+                            ans = all?.['科目A試験']?.[key] || null;
+                        }
+                        state.quiz.answerKey = ans;
                     } catch(e){ console.error('Failed to load answer key in review:', e); }
                 }
                 // Render after ensuring key
@@ -985,7 +1078,16 @@
                     await ensureAnswerKeyForReview();
                     const header = document.createElement('div');
                     header.className = 'mb-4';
-                    header.innerHTML = `<h3 class="kid-title text-xl font-bold">解答レビュー（${state.quiz.year}年 科目A試験）</h3>`;
+                    // If year stored as YYYYMM (final mode), format as 'YYYY年M月'
+                    let reviewTitleYear = state.quiz.year;
+                    if (String(state.quiz.year).length === 6) {
+                        const y = String(state.quiz.year).slice(0,4);
+                        const m = String(state.quiz.year).slice(4).replace(/^0/, '');
+                        reviewTitleYear = `${y}年${m}月`;
+                    } else {
+                        reviewTitleYear = `${state.quiz.year}年`;
+                    }
+                    header.innerHTML = `<h3 class="kid-title text-xl font-bold">解答レビュー（${reviewTitleYear} 科目A試験）</h3>`;
                     container.appendChild(header);
 
                     if (!state.quiz.answerKey) {
@@ -1074,6 +1176,14 @@
             navButtons.forEach(btn => btn.classList.remove('bg-blue-500','text-white','ring-2','ring-blue-300'));
             const active = document.querySelector(`#question-nav-buttons button[data-index='${index}']`);
             if (active) active.classList.add('bg-blue-500','text-white','ring-2','ring-blue-300');
+        }
+
+        function markNavAnswered(index) {
+            const btn = document.querySelector(`#question-nav-buttons button[data-index='${index}']`);
+            if (!btn) return;
+            btn.classList.add('answered');
+            // keep accessibility state
+            btn.setAttribute('aria-pressed', 'true');
         }
 
         function renderProgressPage() {
@@ -1326,7 +1436,11 @@
                     const res = await fetch('./kakomon_answers.json');
                     const all = await res.json();
                     const yearKey = String(state.quiz.year);
+                    // Try exact key (YYYYMM) first, then fallback to YYYY only
                     let key = all?.['科目A試験']?.[yearKey] || null;
+                    if (!key && yearKey.length === 6) {
+                        key = all?.['科目A試験']?.[yearKey.slice(0,4)] || null;
+                    }
                     if (!key && all?.['科目A試験']?.sample) {
                         // Fallback to sample if the exact year is missing
                         key = all['科目A試験'].sample;
@@ -1526,20 +1640,73 @@
                 return b - a; // Sort numbers descending
             });
 
-            [regSel, finSel, kamokuBSel].forEach(sel => {
+            // Fill regular and kamokuB with simple year entries
+            [regSel, kamokuBSel].forEach(sel => {
                 sel.innerHTML = '';
                 sortedYears.forEach(y => {
                     const opt = document.createElement('option');
                     opt.value = y;
-                    // Display 'サンプル問題' for 'sample', otherwise 'YYYY年'
                     opt.textContent = (y === 'sample') ? 'サンプル問題' : `${y}年`;
                     sel.appendChild(opt);
                 });
-                // Preselect the top item (which will be 'sample' or the most recent year)
-                if (sortedYears.length > 0) {
-                    sel.value = sortedYears[0];
-                }
+                if (sortedYears.length > 0) sel.value = sortedYears[0];
             });
+
+            // For final (修了試験), populate with monthly S-data (YYYYMM) if available
+            (async () => {
+                finSel.innerHTML = '';
+                try {
+                    const res = await fetch('./kakomon_questionsS.json');
+                    const allS = await res.json();
+                    // Support file format with an exam_data array (as in kakomon_questionsS.json)
+                    if (Array.isArray(allS?.exam_data) && allS.exam_data.length > 0) {
+                        // Optionally include sample if present at top-level
+                        if (allS.sample) {
+                            const opt = document.createElement('option');
+                            opt.value = 'sample';
+                            opt.textContent = 'サンプル問題';
+                            finSel.appendChild(opt);
+                        }
+                        // Sort exam_data by numeric year field descending
+                        const sorted = allS.exam_data.slice().sort((a,b) => (b.year || 0) - (a.year || 0));
+                        sorted.forEach(entry => {
+                            const k = String(entry.year);
+                            const y = k.slice(0,4);
+                            const m = k.slice(4).replace(/^0/, '');
+                            const opt = document.createElement('option');
+                            opt.value = k; // YYYYMM
+                            opt.textContent = `${y}年${m}月`;
+                            finSel.appendChild(opt);
+                        });
+                        finSel.value = String(sorted[0].year);
+                        return;
+                    }
+                    // Fallback to old top-level-key format if present
+                    const keys = Object.keys(allS || {}).filter(k => /^\d{6}$/.test(k)).sort((a,b) => b - a);
+                    if (keys.length > 0) {
+                        keys.forEach(k => {
+                            const y = k.slice(0,4);
+                            const m = k.slice(4).replace(/^0/, '');
+                            const opt = document.createElement('option');
+                            opt.value = k; // YYYYMM
+                            opt.textContent = `${y}年${m}月`;
+                            finSel.appendChild(opt);
+                        });
+                        finSel.value = keys[0];
+                        return;
+                    }
+                } catch (e) {
+                    console.warn('Failed to load kakomon_questionsS.json for final selector, falling back to year-only list', e);
+                }
+                // Fallback: populate like regular years if S-data unavailable
+                sortedYears.forEach(y => {
+                    const opt = document.createElement('option');
+                    opt.value = y;
+                    opt.textContent = (y === 'sample') ? 'サンプル問題' : `${y}年`;
+                    finSel.appendChild(opt);
+                });
+                if (sortedYears.length > 0) finSel.value = sortedYears[0];
+            })();
         }
 
         function startSimulation(type) {

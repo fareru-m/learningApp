@@ -354,9 +354,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // If your app uses remote API, replace with fetch to correct endpoint
             let questions = currentState.questions || [];
             if (!questions || questions.length === 0) {
-                // fallback: try loading a local file 'kakomon_questions.json'
+                // fallback: try loading a local file 'kakomon_questionsA.json'
                 try {
-                    const res = await fetch('./kakomon_questions.json');
+                    const res = await fetch('./kakomon_questionsA.json');
                     const parsed = await res.json();
                     // Attempt to flatten into an array of questions if structure differs
                     if (Array.isArray(parsed)) questions = parsed;
@@ -365,7 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         questions = parsed.exam_data[0]?.questions || [];
                     }
                 } catch (e) {
-                    console.warn('No local kakomon_questions.json found or failed to load:', e);
+                    console.warn('No local kakomon_questionsA.json found or failed to load:', e);
                 }
             }
     
@@ -475,7 +475,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // update highlight on nav
-        highlightNavButton(index);
+            // Show or hide the left question navigation depending on whether we're in an exam/simulation
+            const qNav = document.getElementById('question-nav');
+            if (qNav) {
+                if (currentState.examMode) qNav.classList.remove('hidden');
+                else qNav.classList.add('hidden');
+            }
+            if (currentState.examMode) highlightNavButton(index);
     }
 
     /**
