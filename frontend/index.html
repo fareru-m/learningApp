@@ -216,6 +216,32 @@
             cursor:pointer;
         }
         .dark .music-close { background: rgba(255,255,255,0.08); color:#fff; border-color: rgba(255,255,255,0.12); }
+        /* Ensure option content (including images) stays inside the answer box */
+        #options-container .option-btn {
+            overflow: hidden; /* prevent children from spilling out */
+            border-color: rgba(148,163,184,0.35);
+        }
+        #options-container .option-btn img {
+            max-width: 100%;
+            max-height: 280px; /* cap height so big images don't overflow vertically */
+            height: auto;
+            width: 100%;
+            object-fit: contain;
+            display: block;
+            border-radius: 8px;
+            background: #fff;
+        }
+        /* Layout for options that include a label + image */
+        .option-content {
+            display: flex;
+            flex-direction: column;
+            gap: .5rem;
+            align-items: stretch;
+            width: 100%;
+        }
+        .option-label {
+            font-weight: 600;
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -332,9 +358,12 @@
                     </div>
                     <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
                     <div class="mt-8 flex justify-between items-center">
-                        <button id="end-btn" onclick="navigateTo('dashboard-view')" class="bg-gray-200 text-gray-800 font-bold py-2 px-5 rounded-lg hover:bg-gray-300 transition-colors">終了</button>
+                        <button id="end-btn" onclick="if(window.confirm('試験を終了します。ダッシュボードに戻ってもよろしいですか？')){ navigateTo('dashboard-view'); }" class="bg-gray-200 text-gray-800 font-bold py-2 px-5 rounded-lg hover:bg-gray-300 transition-colors">終了</button>
                         <p id="feedback" class="h-6 text-lg font-medium text-center flex-grow"></p>
-                        <button id="next-btn" class="bg-blue-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors">次へ &rarr;</button>
+                        <div class="flex items-center gap-3">
+                            <button id="grade-btn" class="bg-green-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-green-700 transition-colors">採点</button>
+                            <button id="next-btn" class="bg-blue-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors">次へ &rarr;</button>
+                        </div>
                     </div>
                 </main>
             </div>
@@ -474,13 +503,10 @@
                 currentIndex: 0,
                 score: 0,
                 mode: 'quick',
-                subMode: null,
+                subMode: null, // 'regular', 'final', 'kamokuB'
                 year: null,
-                usePdf: false,
-                pdfSrc: null,
-                pdfIndex: 0,
                 answerKey: null,
-                userAnswers: [],
+                userAnswers: [], // Initialize as an empty array
                 timerInterval: null
             },
             charts: {},
@@ -714,6 +740,12 @@
             }
             
             document.getElementById('next-btn').onclick = () => handleNextQuestion();
+            const gradeBtn = document.getElementById('grade-btn');
+            if (gradeBtn) gradeBtn.onclick = () => {
+                const ok = window.confirm('採点を実行します。結果画面に移動してもよろしいですか？\n（未回答の問題は不正解として扱われます）');
+                if (!ok) return;
+                showResults();
+            };
             
             navigateTo('quiz-view');
             // Show/hide left-side question navigation only for simulation mode
@@ -849,6 +881,16 @@
                     button.onclick = () => selectAnswer(key, button);
                     optionsContainer.appendChild(button);
                 });
+                // Re-select previously chosen answer in simulation mode
+                const saved = state.quiz.userAnswers[state.quiz.currentIndex]?.choice;
+                if (saved) {
+                    Array.from(optionsContainer.querySelectorAll('.option-btn')).forEach(btn => {
+                        const text = btn.textContent.trim();
+                        // text starts with "<key>. " in non-image case; for image case, we built inner container but kept key as first child text
+                        const keyMatch = text.split('.')[0];
+                        if (keyMatch === saved) btn.classList.add('selected');
+                    });
+                }
             }
         }
 
@@ -906,11 +948,7 @@
         
         function handleNextQuestion(){
              const quiz = state.quiz;
-            // In simulation mode, check if an answer was selected
-            if(quiz.mode === 'simulation' && !state.quiz.userAnswers[quiz.currentIndex]){
-                alert("まず答えを選択してください。");
-                return;
-            }
+            // Allow skipping without forcing selection in simulation mode
 
             if (quiz.mode === 'category') {
                 quiz.currentIndex = (quiz.currentIndex + 1) % quiz.questions.length;
@@ -933,7 +971,16 @@
                     const res = await fetch('./kakomon_answers.json');
                     const all = await res.json();
                     const yearKey = String(state.quiz.year);
-                    state.quiz.answerKey = all?.['科目A試験']?.[yearKey] || null;
+                    if (state.quiz.subMode === 'final') {
+                        // 修了試験: prefer exact YYYYMM, fallback to YYYY
+                        const y4 = yearKey.slice(0,4);
+                        state.quiz.answerKey = all?.['科目A修了認定試験']?.[yearKey] 
+                            || all?.['科目A修了認定試験']?.[y4] 
+                            || null;
+                    } else {
+                        // 科目A試験 (regular)
+                        state.quiz.answerKey = all?.['科目A試験']?.[yearKey] || null;
+                    }
                 } catch(e) { 
                     console.error('Gagal memuat kunci jawaban:', e);
                 }
@@ -950,15 +997,15 @@
             console.log('Quiz Mode:', state.quiz.mode);
             console.log('Answer Key exists:', !!state.quiz.answerKey);
             
-            if (state.quiz.mode === 'simulation' && state.quiz.answerKey) {
-                const total = Object.keys(state.quiz.answerKey).length;
+            if (state.quiz.mode === 'simulation') {
+                const total = state.quiz.questions.length;
                 let correct = 0;
                 
                 // Hitung jawaban yang benar
                 for (let i = 0; i < total; i++) {
                     const qno = i + 1;
                     const userAnswer = state.quiz.userAnswers[i]?.choice;
-                    const correctAnswer = state.quiz.answerKey[String(qno)];
+                    const correctAnswer = state.quiz.answerKey ? state.quiz.answerKey[String(qno)] : undefined;
                     
                     console.log(`Pertanyaan ${qno}:`, {
                         userAnswer,
@@ -966,9 +1013,12 @@
                         match: userAnswer === correctAnswer
                     });
                     
-                    if (userAnswer && correctAnswer && userAnswer.trim() === correctAnswer.trim()) {
-                        correct++;
-                    }
+                    const isRight = !!(userAnswer && correctAnswer && userAnswer.trim() === correctAnswer.trim());
+                    if (isRight) correct++;
+                    // augment stored answers for charts/review
+                    if (!state.quiz.userAnswers[i]) state.quiz.userAnswers[i] = {};
+                    state.quiz.userAnswers[i].correct = correctAnswer || null;
+                    state.quiz.userAnswers[i].isCorrect = isRight;
                 }
                 
                 console.log('Total Benar:', correct);
@@ -1063,14 +1113,23 @@
                         const res = await fetch('./kakomon_answers.json');
                         const all = await res.json();
                         const yearKey = String(state.quiz.year);
-                        // Try exact key (YYYYMM) first, then fallback to YYYY only
-                        let key = yearKey;
-                        let ans = all?.['科目A試験']?.[key] || null;
-                        if (!ans && yearKey.length === 6) {
-                            key = yearKey.slice(0,4);
-                            ans = all?.['科目A試験']?.[key] || null;
+                        if (state.quiz.subMode === 'final') {
+                            // 修了試験 answers: prefer YYYYMM, fallback to YYYY
+                            const y4 = yearKey.slice(0,4);
+                            state.quiz.answerKey = all?.['科目A修了認定試験']?.[yearKey] 
+                                || all?.['科目A修了認定試験']?.[y4] 
+                                || null;
+                        } else {
+                            // 科目A試験 answers
+                            // Try exact key (YYYYMM) first, then fallback to YYYY only
+                            let key = yearKey;
+                            let ans = all?.['科目A試験']?.[key] || null;
+                            if (!ans && yearKey.length === 6) {
+                                key = yearKey.slice(0,4);
+                                ans = all?.['科目A試験']?.[key] || null;
+                            }
+                            state.quiz.answerKey = ans;
                         }
-                        state.quiz.answerKey = ans;
                     } catch(e){ console.error('Failed to load answer key in review:', e); }
                 }
                 // Render after ensuring key
@@ -1087,7 +1146,8 @@
                     } else {
                         reviewTitleYear = `${state.quiz.year}年`;
                     }
-                    header.innerHTML = `<h3 class="kid-title text-xl font-bold">解答レビュー（${reviewTitleYear} 科目A試験）</h3>`;
+                    const examLabel = state.quiz.subMode === 'final' ? '科目A修了認定試験' : '科目A試験';
+                    header.innerHTML = `<h3 class="kid-title text-xl font-bold">解答レビュー（${reviewTitleYear} ${examLabel}）</h3>`;
                     container.appendChild(header);
 
                     if (!state.quiz.answerKey) {
@@ -1099,9 +1159,7 @@
                         container.appendChild(warn);
                     }
 
-                    
-                    const total = Object.keys(state.quiz.answerKey).length;
-
+                    const total = state.quiz.questions.length;
                     for (let i = 0; i < total; i++) {
                         const qno = i + 1;
                         const your = state.quiz.userAnswers[i]?.choice || '—';

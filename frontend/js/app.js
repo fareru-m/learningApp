@@ -477,11 +477,26 @@ document.addEventListener('DOMContentLoaded', () => {
         // update highlight on nav
             // Show or hide the left question navigation depending on whether we're in an exam/simulation
             const qNav = document.getElementById('question-nav');
+            const navButtons = document.getElementById('question-nav-buttons');
+            const headerEl = document.getElementById('question-nav-header');
             if (qNav) {
-                if (currentState.examMode) qNav.classList.remove('hidden');
-                else qNav.classList.add('hidden');
+                if (currentState.examMode) {
+                    qNav.classList.remove('hidden');
+                    if (headerEl) headerEl.classList.remove('hidden');
+                    // Only highlight if nav buttons are already present (startQuiz should have populated)
+                    if (navButtons && navButtons.children.length > 0) {
+                        highlightNavButton(index);
+                    }
+                    qNav.removeAttribute('aria-hidden');
+                    if (headerEl) headerEl.removeAttribute('aria-hidden');
+                } else {
+                    qNav.classList.add('hidden');
+                    if (headerEl) headerEl.classList.add('hidden');
+                    if (navButtons) navButtons.innerHTML = '';
+                    qNav.setAttribute('aria-hidden', 'true');
+                    if (headerEl) headerEl.setAttribute('aria-hidden', 'true');
+                }
             }
-            if (currentState.examMode) highlightNavButton(index);
     }
 
     /**
