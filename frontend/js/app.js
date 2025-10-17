@@ -356,7 +356,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!questions || questions.length === 0) {
                 // fallback: try loading a local file 'kakomon_questionsA.json'
                 try {
-                    const res = await fetch('./kakomon_questionsA.json');
+                    let file = './kakomon_questionsA.json';
+                    if (subMode === 'final') {
+                        file = './kakomon_questionsS.json';
+                    }
+                    const res = await fetch(file);
                     const parsed = await res.json();
                     // Attempt to flatten into an array of questions if structure differs
                     if (Array.isArray(parsed)) questions = parsed;
@@ -438,9 +442,12 @@ document.addEventListener('DOMContentLoaded', () => {
             console.warn('renderQuestion: question not found at index', index);
             return;
         }
-        // set question text
+        // set question text (convert literal "\\n" to real newlines for display)
         const questionEl = document.getElementById('question');
-        if (questionEl) questionEl.innerHTML = `<p>${q.question || q.text || '（問題が見つかりません）'}</p>`;
+        if (questionEl) {
+            const qText = (q.question || q.text || '（問題が見つかりません）').replace(/\\n/g, '\n');
+            questionEl.textContent = qText;
+        }
 
         // progress info
         const progressInfoEl = document.getElementById('progress-info');
@@ -450,11 +457,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const optionsContainer = document.getElementById('options-container');
         if (optionsContainer) optionsContainer.innerHTML = '';
 
+        const isImagePath = (val) => /\.(png|jpe?g|gif|webp|svg)$/i.test(String(val || ''));
+
         if (Array.isArray(q.options)) {
             q.options.forEach(opt => {
                 const btn = document.createElement('button');
                 btn.className = 'option-btn w-full p-4 border rounded-lg text-left transition-colors';
-                btn.textContent = opt;
+                const content = String(opt).replace(/\\n/g, '\n');
+                if (isImagePath(content)) {
+                    btn.innerHTML = `<div class="option-content"><span class="option-label"></span><img src="${content}" alt="option image"></div>`;
+                } else {
+                    btn.textContent = content;
+                }
                 btn.addEventListener('click', () => {
                     currentState.userAnswers[index] = opt;
                     btn.classList.add('selected');
@@ -465,7 +479,12 @@ document.addEventListener('DOMContentLoaded', () => {
             Object.entries(q.options).forEach(([key, value]) => {
                 const btn = document.createElement('button');
                 btn.className = 'option-btn w-full p-4 border rounded-lg text-left transition-colors flex items-center';
-                btn.textContent = `${key}. ${value}`;
+                const valText = String(value).replace(/\\n/g, '\n');
+                if (isImagePath(valText)) {
+                    btn.innerHTML = `<div class="option-content"><span class="option-label">${key}</span><img src="${valText}" alt="option ${key}"></div>`;
+                } else {
+                    btn.textContent = `${key}. ${valText}`;
+                }
                 btn.addEventListener('click', () => {
                     currentState.userAnswers[index] = key;
                     btn.classList.add('selected');
