@@ -391,6 +391,17 @@ document.addEventListener('DOMContentLoaded', () => {
             populateQuestionNav(questions.length);
             renderQuestion(0);
     
+            // Show timer container and start countdown for 科目A修了試験 (90 minutes)
+            stopExamTimer();
+            const timerContainer = document.getElementById('timer-container');
+            if (subMode === 'final') {
+                if (timerContainer) timerContainer.classList.remove('hidden');
+                startExamTimer(90 * 60);
+            } else {
+                // Hide timer for other modes (unless later needed)
+                if (timerContainer) timerContainer.classList.add('hidden');
+            }
+    
         } catch (err) {
             console.error('startSimulation error', err);
             alert('シミュレーションの開始に失敗しました。コンソールを確認してください。');
@@ -634,4 +645,63 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentMode = currentState.quizMode || 'quick'; // Default to quick if not set
         onQuizComplete(currentMode, score, currentState.category || null);
     }
+
+    // ===== Exam Timer (for 科目A修了試験) =====
+    let examTimerInterval = null;
+    let examRemainingSeconds = 0;
+
+    function formatTime(totalSeconds) {
+        const m = Math.floor(totalSeconds / 60);
+        const s = totalSeconds % 60;
+        const mm = String(m).padStart(2, '0');
+        const ss = String(s).padStart(2, '0');
+        return `${mm}:${ss}`;
+    }
+
+    function updateTimerDisplay() {
+        const timerEl = document.getElementById('timer');
+        if (!timerEl) return;
+        timerEl.textContent = formatTime(Math.max(0, examRemainingSeconds));
+    }
+
+    function startExamTimer(durationSeconds) {
+        examRemainingSeconds = durationSeconds;
+        updateTimerDisplay();
+        if (examTimerInterval) clearInterval(examTimerInterval);
+        examTimerInterval = setInterval(() => {
+            examRemainingSeconds -= 1;
+            updateTimerDisplay();
+            if (examRemainingSeconds <= 0) {
+                clearInterval(examTimerInterval);
+                examTimerInterval = null;
+                // Time's up
+                alert('時間切れです。試験を終了します。');
+                stopExamTimer(true);
+            }
+        }, 1000);
+    }
+
+    function stopExamTimer(timeUp = false) {
+        if (examTimerInterval) {
+            clearInterval(examTimerInterval);
+            examTimerInterval = null;
+        }
+        const timerContainer = document.getElementById('timer-container');
+        if (timerContainer) timerContainer.classList.add('hidden');
+        if (timeUp) {
+            // Return to dashboard on time up
+            const quizView = document.getElementById('quiz-view');
+            if (quizView) quizView.classList.remove('active');
+            const dashboard = document.getElementById('dashboard-view');
+            if (dashboard) dashboard.classList.add('active');
+            currentState.examMode = false;
+        }
+    }
+
+    // Stop timer when user clicks 終了
+    document.addEventListener('click', (e) => {
+        if (e.target && e.target.id === 'end-btn') {
+            stopExamTimer(false);
+        }
+    });
 });

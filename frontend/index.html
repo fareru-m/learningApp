@@ -646,8 +646,8 @@
                     }
                 } else {
                     // 科目A修了試験: load monthly-stamped questions from kakomon_questionsS.json
-                    timeLimit = 0; // no timer for final by default
-                    modeTitle = "✅ 科目A修了認定試験";
+                    timeLimit = 90 * 60; // 90 minutes for final exam
+                    modeTitle = "⏱️ 科目A修了認定試験（90分）";
                     try {
                         const yearSel = document.getElementById('year-final');
                         const selected = yearSel?.value;
