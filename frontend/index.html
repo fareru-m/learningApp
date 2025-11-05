@@ -271,7 +271,7 @@
                     <p class="text-gray-600 dark:text-gray-300 mt-2">時間制限なしのランダム10問。ウォームアップにぴったり！</p>
                 </div>
                 <div class="glass-card p-6 rounded-2xl cursor-pointer" onclick="navigateTo('simulation-setup-view')">
-                    <h2 class="kid-title text-2xl font-bold text-gray-800 dark:text-gray-100">⏱️ 試験シミュレーション</h2>
+                    <h2 class="kid-title text-2xl font-bold text-gray-800 dark:text-gray-100">⏱️ 模擬試験</h2>
                     <p class="text-gray-600 dark:text-gray-300 mt-2">本番みたいにチャレンジしよう！</p>
                 </div>
                 <div class="glass-card p-6 rounded-2xl cursor-pointer" onclick="showCategorySelection()">
@@ -305,7 +305,7 @@
                     <button onclick="navigateTo('dashboard-view')" class="mr-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                         <i class="fas fa-arrow-left"></i>
                     </button>
-                    <h1 class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">試験シミュレーション設定</h1>
+                    <h1 class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">模擬試験設定</h1>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="glass-card p-6 rounded-2xl">
@@ -424,7 +424,7 @@
                             クイッククイズ
                         </button>
                         <button onclick="renderProgressChart('simulation')" class="px-4 py-2 rounded-full bg-pink-500 text-white hover:bg-pink-600 transition-colors text-sm md:text-base">
-                            試験シミュレーション
+                            模擬試験
                         </button>
                     </div>
                     
@@ -667,7 +667,7 @@
                         modeTitle = "⏱️ 科目A試験（30分２０問）";
                     }
                 } else {
-                    timeLimit = 90 * 60; // 90 minutes for final exam
+                    timeLimit = 90 * 60; // 90 minutes for final exam (default)
                     modeTitle = "⏱️ 科目A修了認定試験（90分）";
                     try {
                         const yearSel = document.getElementById('year-final');
@@ -704,6 +704,14 @@
                         console.error('Failed to load kakomon_questionsS.json for final exam:', err);
                         alert('科目A修了試験の問題読み込みに失敗しました。');
                         return;
+                    }
+                    // Adjust final exam time based on number of questions
+                    if (Array.isArray(selectedQuestions) && selectedQuestions.length >= 80) {
+                        timeLimit = 150 * 60; // 150 minutes for 80-question final
+                        modeTitle = "⏱️ 科目A修了認定試験（150分）";
+                    } else {
+                        timeLimit = 90 * 60; // fallback to 90 minutes
+                        modeTitle = "⏱️ 科目A修了認定試験（90分）";
                     }
                 }
                 if (config.year) {
@@ -1288,7 +1296,7 @@
                         
                         const modeMap = {
                             'quick': '🚀 クイッククイズ',
-                            'simulation': '⏱️ 試験シミュレーション',
+                            'simulation': '⏱️ 模擬試験',
                             'category': '📚 カテゴリ別練習'
                         };
                         const modeText = modeMap[item.mode] || '練習';
@@ -1356,7 +1364,7 @@
                 const list = byMode[mode];
                 labels = list.map(item => new Date(item.date).toLocaleDateString('ja-JP', { day: 'numeric', month: 'short' }));
                 datasets = [{
-                    label: mode === 'quick' ? 'クイッククイズ' : '試験シミュレーション',
+                    label: mode === 'quick' ? 'クイッククイズ' : '模擬試験',
                     data: list.map(item => (item.score / item.total) * 100),
                     borderColor: mode === 'quick' ? theme.primary : theme.accent,
                     backgroundColor: theme.fillPrimary,
@@ -1385,7 +1393,7 @@
                         tension: 0.1
                     },
                     {
-                        label: '試験シミュレーション',
+                        label: '模擬試験',
                         data: buildSeries(byMode.simulation),
                         borderColor: theme.accent,
                         backgroundColor: 'rgba(167, 139, 250, 0.10)',

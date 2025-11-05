@@ -83,7 +83,7 @@ function renderProgressChart() {
 
     const modeNames = {
         'quick': 'クイッククイズ',
-        'simulation': '試験シミュレーション',
+        'simulation': '模擬試験',
         'category': 'カテゴリ別練習'
     };
 
@@ -391,14 +391,14 @@ document.addEventListener('DOMContentLoaded', () => {
             populateQuestionNav(questions.length);
             renderQuestion(0);
     
-            // Show timer container and start countdown for 科目A修了試験 (90 minutes)
+            // Show timer: 科目A修了試験 defaults to 90min, but 80問の場合は150分
             stopExamTimer();
             const timerContainer = document.getElementById('timer-container');
             if (subMode === 'final') {
                 if (timerContainer) timerContainer.classList.remove('hidden');
-                startExamTimer(90 * 60);
+                const dur = (Array.isArray(questions) && questions.length >= 80) ? (150 * 60) : (90 * 60);
+                startExamTimer(dur);
             } else {
-                // Hide timer for other modes (unless later needed)
                 if (timerContainer) timerContainer.classList.add('hidden');
             }
     
@@ -619,7 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="mb-4">
                 <button onclick="renderProgressChart('all')" class="px-4 py-2 mr-2 bg-blue-500 text-white rounded">すべて</button>
                 <button onclick="renderProgressChart('quick')" class="px-4 py-2 mr-2 bg-purple-500 text-white rounded">クイッククイズ</button>
-                <button onclick="renderProgressChart('simulation')" class="px-4 py-2 mr-2 bg-pink-500 text-white rounded">試験シミュレーション</button>
+                <button onclick="renderProgressChart('simulation')" class="px-4 py-2 mr-2 bg-pink-500 text-white rounded">模擬試験</button>
                 <button onclick="renderProgressChart('category')" class="px-4 py-2 bg-green-500 text-white rounded">カテゴリ別練習</button>
             </div>
             <div id="progressContainer" class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
