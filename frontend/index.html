@@ -484,22 +484,17 @@
     <script>
     document.addEventListener('DOMContentLoaded', () => {
 
-        const questions = [
-            { category: "理論", question: "デジタルコンピューティングの基礎となる数体系はどれですか？", options: ["10進数", "2進数", "8進数", "16進数"], answer: "2進数", explanation: "2進数（基数2）は0と1の2つの記号を使用し、電子回路のオン/オフ状態を表します。" },
-            { category: "ネットワーク", question: "電子メールの送信に使用されるプロトコルはどれですか？", options: ["HTTP", "FTP", "SMTP", "TCP"], answer: "SMTP", explanation: "SMTP（Simple Mail Transfer Protocol）は、インターネット上で電子メールを送信するための標準です。" },
-            { category: "データベース", question: "SQLにおけるDML（データ操作言語）の例はどれですか？", options: ["CREATE", "ALTER", "SELECT", "DROP"], answer: "SELECT", explanation: "DMLはデータを操作するために使用されます。例：SELECT、INSERT、UPDATE、DELETE。CREATE、ALTER、DROPはDDL（データ定義言語）の一部です。" },
-            { category: "理論", question: "2進数 '1011' の10進数値はいくつですか？", options: ["9", "10", "11", "13"], answer: "11", explanation: "(1 * 2^3) + (0 * 2^2) + (1 * 2^1) + (1 * 2^0) = 8 + 0 + 2 + 1 = 11。" },
-            { category: "セキュリティ", question: "鍵なしでは読み取れない形式にデータを変換して保護する技術を何と呼びますか？", options: ["ファイアウォール", "暗号化", "認証", "ハッシュ化"], answer: "暗号化", explanation: "暗号化は、平文を暗号文に変換して不正アクセスからデータを保護するプロセスです。" },
-            { category: "プロジェクトマネジメント", question: "プロジェクトのスケジュールとタスク間の依存関係を視覚化するために使用される図はどれですか？", options: ["フローチャート", "UML図", "ガントチャート", "ERD図"], answer: "ガントチャート", explanation: "ガントチャートは、プロジェクトの開始から終了までのスケジュールを示す棒グラフの一種です。" },
-            { category: "ネットワーク", question: "ネットワーク通信のための7層参照モデルとして知られているものはどれですか？", options: ["TCP/IPモデル", "OSIモデル", "ウォーターフォールモデル", "Vモデル"], answer: "OSIモデル", explanation: "OSI（Open Systems Interconnection）モデルは、電気通信またはコンピューティングシステムの通信機能を特徴付け、標準化する概念モデルです。" },
-            { category: "アルゴリズム", question: "後入れ先出し（LIFO）の原則に従うデータ構造はどれですか？", options: ["キュー", "スタック", "連結リスト", "ツリー"], answer: "スタック", explanation: "スタックは皿の山のように機能します。最後に追加された項目が最初に取り出されます。" },
-            { category: "セキュリティ", question: "正当なユーザーがネットワークサービスを利用できないようにする攻撃を何と呼びますか？", options: ["フィッシング", "中間者攻撃", "サービス拒否（DoS）攻撃", "SQLインジェクション"], answer: "サービス拒否（DoS）攻撃", explanation: "DoS攻撃は、偽のトラフィックやリクエストでターゲットを溢れさせ、リソースを消費させてアクセス不能にします。" },
-            { category: "データベース", question: "SQLにおけるDML（データ操作言語）の例はどれですか？", options: ["CREATE", "ALTER", "SELECT", "DROP"], answer: "SELECT", explanation: "DMLはデータを操作するために使用されます。例：SELECT、INSERT、UPDATE、DELETE。CREATE、ALTER、DROPはDDL（データ定義言語）の一部です。" },
-            { category: "ネットワーク", question: "IPアドレス 192.168.1.1 はどのクラスに属しますか？", options: ["クラスA", "クラスB", "クラスC", "クラスD"], answer: "クラスC", explanation: "クラスCのIPアドレスは192.0.0.0から223.255.255.255の範囲で、通常は小規模から中規模のネットワークに使用されます。" },
-            { category: "アルゴリズム", question: "二分探索アルゴリズムの時間計算量はどれですか？", options: ["O(n)", "O(log n)", "O(n^2)", "O(1)"], answer: "O(log n)", explanation: "二分探索はソート済みの配列に対して機能し、各ステップで探索空間を半分に分割するため、非常に効率的です。" },
-            { category: "プロジェクトマネジメント", question: "ITサービスの文脈における 'SLA' は何の頭字語ですか？", options: ["Service Level Agreement", "Software License Agreement", "System Logic Algorithm", "Secure Layer Access"], answer: "Service Level Agreement", explanation: "SLAは、サービスプロバイダーと顧客の間で期待されるサービスレベルを定義する契約です。" },
-            { category: "理論", question: "電源が切れるとデータが失われる揮発性コンピュータメモリはどれですか？", options: ["ROM", "SSD", "RAM", "フラッシュメモリ"], answer: "RAM", explanation: "RAM（Random Access Memory）は、オペレーティングシステムやアプリケーションがアクティブに使用する短期的なデータストレージに使用されます。" }
-        ];
+        let questions = [];
+        (async () => {
+            try {
+                const res = await fetch('./category_questions.json');
+                const data = await res.json();
+                questions = normalizeCategoryData(data);
+            } catch (e) {
+                console.error('Failed to load category_questions.json', e);
+                questions = [];
+            }
+        })();
 
         const state = {
             currentView: 'dashboard-view',
@@ -533,6 +528,24 @@
                 danger: dark ? '#f87171' : '#ef4444',
                 fillPrimary: dark ? 'rgba(96,165,250,0.15)' : 'rgba(59,130,246,0.10)'
             };
+        }
+        // Normalize category_questions.json which can be:
+        // - Array of question objects
+        // - { questions: [...] }
+        // - { "カテゴリ名": [ {question, options, ...}, ... ], ... }
+        function normalizeCategoryData(data) {
+            if (Array.isArray(data)) return data;
+            if (Array.isArray(data?.questions)) return data.questions;
+            if (data && typeof data === 'object') {
+                const out = [];
+                for (const [cat, arr] of Object.entries(data)) {
+                    if (Array.isArray(arr)) {
+                        arr.forEach(item => out.push({ ...item, category: item?.category || cat }));
+                    }
+                }
+                return out;
+            }
+            return [];
         }
         function refreshChartsForTheme() {
             // Re-render charts if their canvases are present
@@ -610,7 +623,14 @@
             let modeTitle = "";
             
             if (config.mode === 'quick') {
-                selectedQuestions = questions.sort(() => 0.5 - Math.random()).slice(0, 10);
+                if (!questions || questions.length === 0) {
+                    try {
+                        const res = await fetch('./category_questions.json');
+                        const data = await res.json();
+                        questions = normalizeCategoryData(data);
+                    } catch (_) { questions = []; }
+                }
+                selectedQuestions = (questions || []).slice().sort(() => 0.5 - Math.random()).slice(0, 10);
                 modeTitle = "🚀 クイッククイズ";
             } else if (config.mode === 'simulation') {
                 const sub = config.subMode || 'regular';
@@ -696,13 +716,20 @@
                         modeTitle += `（${config.year}年 過去問）`;
                     }
                 }
-             } else if (config.mode === 'category') {
-                 selectedQuestions = questions.filter(q => config.categories.includes(q.category)).sort(() => 0.5 - Math.random());
-                  if (selectedQuestions.length > 15) {
-                     selectedQuestions = selectedQuestions.slice(0, 15);
-                 }
-                 modeTitle = "📚 カテゴリ別練習";
-             }
+            } else if (config.mode === 'category') {
+                if (!questions || questions.length === 0) {
+                    try {
+                        const res = await fetch('./category_questions.json');
+                        const data = await res.json();
+                        questions = Array.isArray(data) ? data : Array.isArray(data?.questions) ? data.questions : [];
+                    } catch (_) { questions = []; }
+                }
+                selectedQuestions = (questions || []).filter(q => config.categories.includes(q.category)).sort(() => 0.5 - Math.random());
+                 if (selectedQuestions.length > 15) {
+                    selectedQuestions = selectedQuestions.slice(0, 15);
+                }
+                modeTitle = "📚 カテゴリ別練習";
+            }
 
             if(selectedQuestions.length === 0 && config.mode !== 'simulation') {
                 alert("選択されたカテゴリの問題が見つかりませんでした。");
