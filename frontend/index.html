@@ -319,7 +319,9 @@
                         <h2 class="kid-title text-xl font-bold text-gray-800 dark:text-gray-100 mb-2">科目A修了試験</h2>
                         <p class="text-gray-600 dark:text-gray-300 mb-4">仕上げの確認テスト。</p>
                         <label class="block text-sm text-gray-600 dark:text-gray-300 mb-1">過去問の年度を選択</label>
-                        <select id="year-final" class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 mb-4"></select>
+                        <select id="year-final" class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 mb-2"></select>
+                        <label class="block text-sm text-gray-600 dark:text-gray-300 mb-1">月を選択</label>
+                        <select id="month-final" class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 mb-4"></select>
                         <button class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700" onclick="startSimulation('final')">開始</button>
                     </div>
                     <div class="glass-card p-6 rounded-2xl">
@@ -645,50 +647,38 @@
                         modeTitle = "⏱️ 科目A試験（30分２０問）";
                     }
                 } else {
-                    // 科目A修了試験: load monthly-stamped questions from kakomon_questionsS.json
                     timeLimit = 90 * 60; // 90 minutes for final exam
                     modeTitle = "⏱️ 科目A修了認定試験（90分）";
                     try {
                         const yearSel = document.getElementById('year-final');
-                        const selected = yearSel?.value;
+                        const monthSel = document.getElementById('month-final');
+                        const y = String(yearSel?.value || '').slice(0,4);
+                        const m = String(monthSel?.value || '').padStart(2, '0');
+                        const yyyymm = `${y}${m}`;
+
                         const res = await fetch('./kakomon_questionsS.json');
                         const allS = await res.json();
 
-                        // If file uses exam_data array
                         if (Array.isArray(allS?.exam_data)) {
-                            // Try to find exact match by year (number) first
-                            const numSelected = parseInt(selected, 10);
-                            let entry = allS.exam_data.find(e => Number(e.year) === numSelected);
+                            const entry = allS.exam_data.find(e => String(e.year) === yyyymm);
                             if (!entry) {
-                                // If user selected just a year (e.g., '2025'), pick latest month for that year
-                                const yearPrefix = String(selected).slice(0,4);
-                                const candidates = allS.exam_data.filter(e => String(e.year).startsWith(yearPrefix));
-                                if (candidates.length > 0) {
-                                    candidates.sort((a,b) => Number(b.year) - Number(a.year));
-                                    entry = candidates[0];
-                                }
-                            }
-                            if (!entry) {
-                                alert(`${selected} の科目A修了試験（Sデータ）が見つかりませんでした。`);
+                                alert(`${y}年${parseInt(m,10)}月 の科目A修了試験（Sデータ）が見つかりませんでした。`);
                                 return;
                             }
                             selectedQuestions = entry.questions || entry;
-                            config.year = String(entry.year);
+                            config.year = yyyymm;
                         } else {
-                            // legacy: top-level keys like '202507'
-                            const year = String(selected);
-                            const keys = Object.keys(allS || {}).filter(k => k.startsWith(year));
-                            if (keys.length === 0) {
-                                alert(`${year}年の科目A修了試験（Sデータ）が見つかりませんでした。`);
+                            const node = allS[yyyymm];
+                            if (!node) {
+                                alert(`${y}年${parseInt(m,10)}月 の科目A修了試験（Sデータ）が見つかりませんでした。`);
                                 return;
                             }
-                            const chosenKey = keys.map(k => parseInt(k, 10)).sort((a, b) => b - a)[0].toString();
-                            selectedQuestions = allS[chosenKey]?.questions || allS[chosenKey] || null;
+                            selectedQuestions = node?.questions || node || null;
                             if (!selectedQuestions || selectedQuestions.length === 0) {
-                                alert(`${chosenKey} の問題が見つかりませんでした。`);
+                                alert(`${y}年${parseInt(m,10)}月 の問題が見つかりませんでした。`);
                                 return;
                             }
-                            config.year = chosenKey;
+                            config.year = yyyymm;
                         }
                     } catch (err) {
                         console.error('Failed to load kakomon_questionsS.json for final exam:', err);
@@ -755,7 +745,7 @@
             try {
                 const navEl = document.getElementById('question-nav');
                 if (navEl) {
-                    if (state.quiz.mode === 'simulation') {
+                    if (state.quiz.mode === 'simulation' || state.quiz.mode === 'quick') {
                         navEl.classList.remove('hidden');
                         const count = state.quiz.questions ? state.quiz.questions.length : 0;
                         if (typeof populateQuestionNav === 'function' && count > 0) {
@@ -837,7 +827,7 @@
             nextBtn.textContent = (quiz.currentIndex === quiz.questions.length - 1 && quiz.mode !== 'category') ? '結果を見る' : '次へ →';
 
             // Update left nav active state if present
-            if (quiz.mode === 'simulation' && typeof highlightNavButton === 'function') {
+            if ((quiz.mode === 'simulation' || quiz.mode === 'quick') && typeof highlightNavButton === 'function') {
                 highlightNavButton(quiz.currentIndex);
             }
 
@@ -1216,7 +1206,8 @@
             if (!navContainer) return;
             navContainer.innerHTML = '';
             if (!questionCount || questionCount <= 0) return;
-            for (let i = 0; i < questionCount; i++) {
+            const limit = (state && state.quiz && state.quiz.mode === 'quick') ? Math.min(10, questionCount) : questionCount;
+            for (let i = 0; i < limit; i++) {
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.textContent = i + 1;
@@ -1691,8 +1682,9 @@
         function populateSimulationYears() {
             const regSel = document.getElementById('year-regular');
             const finSel = document.getElementById('year-final');
+            const monthSel = document.getElementById('month-final');
             const kamokuBSel = document.getElementById('year-kamokuB');
-            if (!regSel || !finSel || !kamokuBSel) return;
+            if (!regSel || !finSel || !kamokuBSel || !monthSel) return;
 
             // Custom sort: numbers descending, 'sample' comes after the most recent year.
             const sortedYears = simulationYears.slice().sort((a, b) => {
@@ -1713,60 +1705,80 @@
                 if (sortedYears.length > 0) sel.value = sortedYears[0];
             });
 
-            // For final (修了試験), populate with monthly S-data (YYYYMM) if available
             (async () => {
                 finSel.innerHTML = '';
+                monthSel.innerHTML = '';
+                const allowedMonths = [12, 7, 6, 1];
                 try {
                     const res = await fetch('./kakomon_questionsS.json');
                     const allS = await res.json();
-                    // Support file format with an exam_data array (as in kakomon_questionsS.json)
+
+                    // Build year -> Set(months) map from either exam_data array or legacy keys
+                    const yearToMonths = new Map();
+                    const add = (yyyy, mm) => {
+                        if (!yearToMonths.has(yyyy)) yearToMonths.set(yyyy, new Set());
+                        yearToMonths.get(yyyy).add(mm);
+                    };
+
                     if (Array.isArray(allS?.exam_data) && allS.exam_data.length > 0) {
-                        // Optionally include sample if present at top-level
-                        if (allS.sample) {
-                            const opt = document.createElement('option');
-                            opt.value = 'sample';
-                            opt.textContent = 'サンプル問題';
-                            finSel.appendChild(opt);
-                        }
-                        // Sort exam_data by numeric year field descending
-                        const sorted = allS.exam_data.slice().sort((a,b) => (b.year || 0) - (a.year || 0));
-                        sorted.forEach(entry => {
+                        allS.exam_data.forEach(entry => {
                             const k = String(entry.year);
-                            const y = k.slice(0,4);
-                            const m = k.slice(4).replace(/^0/, '');
-                            const opt = document.createElement('option');
-                            opt.value = k; // YYYYMM
-                            opt.textContent = `${y}年${m}月`;
-                            finSel.appendChild(opt);
+                            const yyyy = k.slice(0,4);
+                            const mm = parseInt(k.slice(4), 10);
+                            add(yyyy, mm);
                         });
-                        finSel.value = String(sorted[0].year);
-                        return;
-                    }
-                    // Fallback to old top-level-key format if present
-                    const keys = Object.keys(allS || {}).filter(k => /^\d{6}$/.test(k)).sort((a,b) => b - a);
-                    if (keys.length > 0) {
-                        keys.forEach(k => {
-                            const y = k.slice(0,4);
-                            const m = k.slice(4).replace(/^0/, '');
-                            const opt = document.createElement('option');
-                            opt.value = k; // YYYYMM
-                            opt.textContent = `${y}年${m}月`;
-                            finSel.appendChild(opt);
+                    } else {
+                        Object.keys(allS || {}).forEach(k => {
+                            if (/^\d{6}$/.test(k)) {
+                                const yyyy = k.slice(0,4);
+                                const mm = parseInt(k.slice(4), 10);
+                                add(yyyy, mm);
+                            }
                         });
-                        finSel.value = keys[0];
-                        return;
                     }
+
+                    // Populate years (descending)
+                    const years = Array.from(yearToMonths.keys()).sort((a,b) => b.localeCompare(a));
+                    years.forEach(y => {
+                        const opt = document.createElement('option');
+                        opt.value = y;
+                        opt.textContent = `${y}年`;
+                        finSel.appendChild(opt);
+                    });
+                    if (years.length > 0) finSel.value = years[0];
+
+                    const fillMonths = (yyyy) => {
+                        monthSel.innerHTML = '';
+                        const avail = Array.from(yearToMonths.get(yyyy) || []);
+                        const filtered = allowedMonths.filter(m => avail.includes(m));
+                        filtered.forEach(m => {
+                            const opt = document.createElement('option');
+                            opt.value = String(m);
+                            opt.textContent = `${m}月`;
+                            monthSel.appendChild(opt);
+                        });
+                        if (filtered.length > 0) monthSel.value = String(filtered[0]);
+                    };
+
+                    fillMonths(finSel.value);
+                    finSel.addEventListener('change', () => fillMonths(finSel.value));
                 } catch (e) {
                     console.warn('Failed to load kakomon_questionsS.json for final selector, falling back to year-only list', e);
+                    sortedYears.forEach(y => {
+                        const opt = document.createElement('option');
+                        opt.value = y;
+                        opt.textContent = (y === 'sample') ? 'サンプル問題' : `${y}年`;
+                        finSel.appendChild(opt);
+                    });
+                    if (sortedYears.length > 0) finSel.value = sortedYears[0];
+                    [12,7,6,1].forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = String(m);
+                        opt.textContent = `${m}月`;
+                        monthSel.appendChild(opt);
+                    });
+                    monthSel.value = '12';
                 }
-                // Fallback: populate like regular years if S-data unavailable
-                sortedYears.forEach(y => {
-                    const opt = document.createElement('option');
-                    opt.value = y;
-                    opt.textContent = (y === 'sample') ? 'サンプル問題' : `${y}年`;
-                    finSel.appendChild(opt);
-                });
-                if (sortedYears.length > 0) finSel.value = sortedYears[0];
             })();
         }
 
@@ -1776,10 +1788,21 @@
                          document.getElementById('year-kamokuB');
             const year = yearEl?.value;
 
-            // For year, parse as int if it's a number, otherwise pass the string 'sample'
-            const yearValue = /\d{4}/.test(year) ? parseInt(year, 10) : year;
+            let subMode = 'regular';
+            let yearValue = year;
+            if (type === 'final') {
+                subMode = 'final';
+                const m = document.getElementById('month-final')?.value || '';
+                const yyyymm = `${String(year).slice(0,4)}${String(m).padStart(2,'0')}`;
+                yearValue = yyyymm;
+            } else if (type === 'regular') {
+                subMode = 'regular';
+                yearValue = /\d{4}/.test(year) ? parseInt(year, 10) : year;
+            } else {
+                subMode = 'kamokuB';
+                yearValue = /\d{4}/.test(year) ? parseInt(year, 10) : year;
+            }
 
-            const subMode = type === 'regular' ? 'regular' : type === 'final' ? 'final' : 'kamokuB';
             startQuiz({ mode: 'simulation', subMode, year: yearValue });
         }
         window.startSimulation = startSimulation;
