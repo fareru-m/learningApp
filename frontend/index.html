@@ -805,23 +805,38 @@
         window.startQuiz = startQuiz;
         
         function startTimer(duration) {
-            let timer = duration, minutes, seconds;
+            let remaining = duration;
             const timerEl = document.getElementById('timer');
             
             if (state.quiz && state.quiz.timerInterval) {
                 clearInterval(state.quiz.timerInterval);
             }
 
+            // Update display immediately
+            if (window.formatTime) {
+                timerEl.textContent = window.formatTime(remaining);
+            } else {
+                // Fallback if formatTime is not available
+                const h = Math.floor(remaining / 3600);
+                const m = Math.floor((remaining % 3600) / 60);
+                const s = remaining % 60;
+                timerEl.textContent = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            }
+
             state.quiz.timerInterval = setInterval(() => {
-                minutes = parseInt(timer / 60, 10);
-                seconds = parseInt(timer % 60, 10);
+                remaining--;
+                
+                if (window.formatTime) {
+                    timerEl.textContent = window.formatTime(remaining);
+                } else {
+                    // Fallback if formatTime is not available
+                    const h = Math.floor(remaining / 3600);
+                    const m = Math.floor((remaining % 3600) / 60);
+                    const s = remaining % 60;
+                    timerEl.textContent = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+                }
 
-                minutes = minutes < 10 ? "0" + minutes : minutes;
-                seconds = seconds < 10 ? "0" + seconds : seconds;
-
-                timerEl.textContent = minutes + ":" + seconds;
-
-                if (--timer < 0) {
+                if (remaining <= 0) {
                     clearInterval(state.quiz.timerInterval);
                     state.quiz.timerInterval = null;
                     alert("時間切れです！");
@@ -1241,7 +1256,21 @@
             if (!navContainer) return;
             navContainer.innerHTML = '';
             if (!questionCount || questionCount <= 0) return;
-            const limit = (state && state.quiz && state.quiz.mode === 'quick') ? Math.min(10, questionCount) : questionCount;
+            
+            // Set limit based on mode
+            let limit;
+            if (state && state.quiz) {
+                if (state.quiz.mode === 'quick') {
+                    limit = Math.min(10, questionCount);
+                } else if (state.quiz.mode === 'category') {
+                    limit = Math.min(15, questionCount);  // Show max 15 for category practice
+                } else {
+                    limit = questionCount;  // Show all for other modes
+                }
+            } else {
+                limit = questionCount;  // Fallback to show all
+            }
+            
             for (let i = 0; i < limit; i++) {
                 const btn = document.createElement('button');
                 btn.type = 'button';

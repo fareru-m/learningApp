@@ -650,13 +650,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let examTimerInterval = null;
     let examRemainingSeconds = 0;
 
-    function formatTime(totalSeconds) {
-        const m = Math.floor(totalSeconds / 60);
+    // Make formatTime globally available
+    window.formatTime = function(totalSeconds) {
+        if (isNaN(totalSeconds) || totalSeconds === null || totalSeconds === undefined) {
+            console.warn('Invalid time value:', totalSeconds);
+            return '00:00:00';
+        }
+        
+        totalSeconds = parseInt(totalSeconds, 10);
+        const h = Math.floor(totalSeconds / 3600);
+        const m = Math.floor((totalSeconds % 3600) / 60);
         const s = totalSeconds % 60;
-        const mm = String(m).padStart(2, '0');
-        const ss = String(s).padStart(2, '0');
-        return `${mm}:${ss}`;
-    }
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    };
 
     function updateTimerDisplay() {
         const timerEl = document.getElementById('timer');
