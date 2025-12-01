@@ -1,0 +1,370 @@
+[
+  {
+    "termJa": "ファインチューニング",
+    "termEn": "Fine-tuning",
+    "category": "AI・データサイエンス",
+    "description": "事前学習済みモデルに対して追加で目的特化データを学習させ、特定タスクに適合させる手法。",
+    "tip": "生成AIを自社用語や試験対策用語に合わせたいときに実施する。",
+    "keywords": ["transfer learning", "LLM", "adaptation"]
+  },
+  {
+    "termJa": "大規模言語モデル",
+    "termEn": "Large Language Model",
+    "category": "AI・データサイエンス",
+    "description": "膨大なテキストで学習し、人間の言語を理解・生成できる深層学習モデル。",
+    "tip": "GPTやLlamaなどの基盤モデルが代表例。",
+    "keywords": ["foundation model", "deep learning", "NLP"]
+  },
+  {
+    "termJa": "プロンプトエンジニアリング",
+    "termEn": "Prompt Engineering",
+    "category": "AI・データサイエンス",
+    "description": "生成AIに正確な応答をさせるため、入力指示を工夫して設計する技術。",
+    "tip": "文脈・指示・例示の3要素を揃えると安定した答えが得られる。",
+    "keywords": ["instruction", "prompt design", "LLM"]
+  },
+  {
+    "termJa": "マーケットバスケット分析",
+    "termEn": "Market Basket Analysis",
+    "category": "AI・データサイエンス",
+    "description": "購買履歴から一緒に購入される商品の組合せを抽出するデータマイニング手法。",
+    "tip": "サポート・信頼度・リフトの3指標でルールの有用性を比較する。",
+    "keywords": ["association rule", "support", "lift"]
+  },
+  {
+    "termJa": "データマイニング",
+    "termEn": "Data Mining",
+    "category": "AI・データサイエンス",
+    "description": "大量データから有用なパターンや知見を抽出する分析プロセス。",
+    "tip": "クラスタリングや決定木などFE本試験で頻出の手法を押さえる。",
+    "keywords": ["pattern discovery", "analytics", "big data"]
+  },
+  {
+    "termJa": "ロングテール戦略",
+    "termEn": "Long-tail Strategy",
+    "category": "AI・データサイエンス",
+    "description": "ニッチ商品を幅広く扱い、総体として大きな売上を得るビジネス戦略。",
+    "tip": "多品種在庫と効率的物流が成功の鍵。",
+    "keywords": ["niche", "inventory", "e-commerce"]
+  },
+  {
+    "termJa": "オプトアウト",
+    "termEn": "Opt-out",
+    "category": "AI・データサイエンス",
+    "description": "利用者が自分の情報を学習や通知に利用されることを拒否する仕組み。",
+    "tip": "生成AI学習データに含めないための申請手段として重要。",
+    "keywords": ["consent", "privacy", "data usage"]
+  },
+  {
+    "termJa": "丸め誤差",
+    "termEn": "Rounding Error",
+    "category": "コンピュータシステム",
+    "description": "浮動小数点表示の下位桁を四捨五入・切上げ・切捨てすることで生じる誤差。",
+    "tip": "演算結果を所定ビット幅に収める際に発生する点を押さえる。",
+    "keywords": ["floating point", "precision", "numerical analysis"]
+  },
+  {
+    "termJa": "桁落ち",
+    "termEn": "Cancellation",
+    "category": "コンピュータシステム",
+    "description": "ほぼ等しい値の減算で有効桁が大きく減ってしまう現象。",
+    "tip": "別式変形で回避する手法が試験で問われる。",
+    "keywords": ["floating point", "precision", "numerical stability"]
+  },
+  {
+    "termJa": "2分探索木",
+    "termEn": "Binary Search Tree",
+    "category": "コンピュータシステム",
+    "description": "左部分木が小さい値、右部分木が大きい値を持つ探索向け木構造。",
+    "tip": "平衡を保つと探索計算量がO(log n)になる。",
+    "keywords": ["data structure", "BST", "search"]
+  },
+  {
+    "termJa": "MTBF",
+    "termEn": "Mean Time Between Failures",
+    "category": "コンピュータシステム",
+    "description": "修理可能なシステムが故障と故障の間で稼働できる平均時間。",
+    "tip": "稼働率計算ではMTTRと合わせて利用する。",
+    "keywords": ["reliability", "uptime", "failure rate"]
+  },
+  {
+    "termJa": "MTTR",
+    "termEn": "Mean Time To Repair",
+    "category": "コンピュータシステム",
+    "description": "故障復旧に要する平均時間。",
+    "tip": "短縮するとサービスの稼働率が向上する。",
+    "keywords": ["repair", "maintainability", "downtime"]
+  },
+  {
+    "termJa": "稼働率",
+    "termEn": "Availability",
+    "category": "コンピュータシステム",
+    "description": "MTBF/(MTBF+MTTR)で求めるシステムの稼働可能割合。",
+    "tip": "百分率で表し冗長構成の効果を比較する。",
+    "keywords": ["uptime", "service level", "reliability"]
+  },
+  {
+    "termJa": "キャッシュヒット率",
+    "termEn": "Cache Hit Ratio",
+    "category": "コンピュータシステム",
+    "description": "メモリアクセスのうちキャッシュで処理できた割合。",
+    "tip": "平均アクセス時間の計算問題で頻出。",
+    "keywords": ["cache", "performance", "hit rate"]
+  },
+  {
+    "termJa": "メモリインタリーブ",
+    "termEn": "Memory Interleaving",
+    "category": "コンピュータシステム",
+    "description": "主記憶を複数バンクに分け並列アクセスでスループットを高める方式。",
+    "tip": "連続アドレスをバンクに分散させて待ち時間を減らす。",
+    "keywords": ["memory bank", "parallel", "throughput"]
+  },
+  {
+    "termJa": "DMA",
+    "termEn": "Direct Memory Access",
+    "category": "コンピュータシステム",
+    "description": "CPUを介さずに入出力装置から主記憶へ直接転送する仕組み。",
+    "tip": "大容量転送でCPU負荷を軽減する。",
+    "keywords": ["I/O", "bus", "throughput"]
+  },
+  {
+    "termJa": "スプーリング",
+    "termEn": "Spooling",
+    "category": "コンピュータシステム",
+    "description": "補助記憶装置を介してCPUと低速I/O装置の非同期処理を実現する手法。",
+    "tip": "プリンタジョブ管理の例で覚える。",
+    "keywords": ["buffer", "queue", "I/O"]
+  },
+  {
+    "termJa": "LRU方式",
+    "termEn": "Least Recently Used",
+    "category": "コンピュータシステム",
+    "description": "最も長時間参照されていないページを置き換えるアルゴリズム。",
+    "tip": "ページ置換・キャッシュ制御の頻出キーワード。",
+    "keywords": ["replacement", "cache", "paging"]
+  },
+  {
+    "termJa": "エッジコンピューティング",
+    "termEn": "Edge Computing",
+    "category": "コンピュータシステム",
+    "description": "データ発生地点近くで処理を行い、遅延と通信量を削減するアーキテクチャ。",
+    "tip": "IoTや自動運転などリアルタイム性が求められる場面で活用。",
+    "keywords": ["IoT", "latency", "distributed"]
+  },
+  {
+    "termJa": "ロジックマッシュアップ",
+    "termEn": "Logic Mashup",
+    "category": "ソフトウェア開発",
+    "description": "複数Webサービスの入出力を連携させて新しい処理フローを作る手法。",
+    "tip": "APIオーケストレーションとも呼ばれる。",
+    "keywords": ["API", "integration", "workflow"]
+  },
+  {
+    "termJa": "ローコード開発",
+    "termEn": "Low-code Development",
+    "category": "ソフトウェア開発",
+    "description": "GUIで部品を組み合わせ少ない記述でアプリを構築する開発スタイル。",
+    "tip": "一部の処理はコードで補完できる点がノーコードとの違い。",
+    "keywords": ["visual development", "rapid", "citizen developer"]
+  },
+  {
+    "termJa": "アンチエイリアシング",
+    "termEn": "Anti-aliasing",
+    "category": "ソフトウェア開発",
+    "description": "傾いた線のギザギザを色の平均化で滑らかに見せる描画手法。",
+    "tip": "フォントや斜線表示の品質向上に必須。",
+    "keywords": ["graphics", "rendering", "smoothing"]
+  },
+  {
+    "termJa": "クリッピング",
+    "termEn": "Clipping",
+    "category": "ソフトウェア開発",
+    "description": "ウィンドウ外の描画対象を切り捨て、見える部分のみを描画する処理。",
+    "tip": "描画負荷削減の基本技術。",
+    "keywords": ["graphics", "viewport", "rendering"]
+  },
+  {
+    "termJa": "オブジェクト指向",
+    "termEn": "Object-Oriented Programming",
+    "category": "ソフトウェア開発",
+    "description": "データと手続きを1つのオブジェクトにまとめるプログラミング手法。",
+    "tip": "カプセル化・継承・多相性の3要素を押さえる。",
+    "keywords": ["OOP", "class", "object"]
+  },
+  {
+    "termJa": "継承",
+    "termEn": "Inheritance",
+    "category": "ソフトウェア開発",
+    "description": "既存クラスの性質や機能を新しいクラスが受け継ぐ仕組み。",
+    "tip": "is-a関係を表すときに使用。",
+    "keywords": ["OOP", "class hierarchy", "reuse"]
+  },
+  {
+    "termJa": "多相性",
+    "termEn": "Polymorphism",
+    "category": "ソフトウェア開発",
+    "description": "同じインタフェース呼び出しでも実装クラスに応じて振る舞いを変える性質。",
+    "tip": "オーバーライドや動的バインディングが支える。",
+    "keywords": ["OOP", "dynamic dispatch", "interface"]
+  },
+  {
+    "termJa": "コンポジション",
+    "termEn": "Composition",
+    "category": "ソフトウェア開発",
+    "description": "複合オブジェクトを構成するために他オブジェクトを部品として保持する設計。",
+    "tip": "has-a関係のときに用い、再利用性と柔軟性を高める。",
+    "keywords": ["OOP", "aggregation", "design"]
+  },
+  {
+    "termJa": "スクラム",
+    "termEn": "Scrum",
+    "category": "ソフトウェア開発",
+    "description": "スプリントごとに価値を届けるアジャイル開発フレームワーク。",
+    "tip": "プロダクトオーナー・スクラムマスタ・開発者の3ロールを理解。",
+    "keywords": ["agile", "sprint", "framework"]
+  },
+  {
+    "termJa": "プロダクトバックログ",
+    "termEn": "Product Backlog",
+    "category": "ソフトウェア開発",
+    "description": "製品に必要な機能・改善・修正要求を優先順位付きでまとめた一覧。",
+    "tip": "プロダクトオーナーが責任を持って順序付ける。",
+    "keywords": ["scrum", "prioritisation", "requirements"]
+  },
+  {
+    "termJa": "デイリースクラム",
+    "termEn": "Daily Scrum",
+    "category": "ソフトウェア開発",
+    "description": "開発者が毎日進捗と障害を共有し、24時間の計画を調整する15分ミーティング。",
+    "tip": "課題の深掘りは会議後に行う。",
+    "keywords": ["scrum", "stand-up", "coordination"]
+  },
+  {
+    "termJa": "スプリントレビュー",
+    "termEn": "Sprint Review",
+    "category": "ソフトウェア開発",
+    "description": "スプリント成果物をステークホルダーに示し、フィードバックを得るイベント。",
+    "tip": "インクリメントの検査と今後の調整が目的。",
+    "keywords": ["scrum", "feedback", "increment"]
+  },
+  {
+    "termJa": "ホワイトボックステスト",
+    "termEn": "White-box Testing",
+    "category": "ソフトウェア開発",
+    "description": "内部構造に基づいてテストケースを設計し、命令や分岐を網羅する手法。",
+    "tip": "命令網羅・判定条件網羅などのカバレッジ指標が問われる。",
+    "keywords": ["test coverage", "internal logic", "unit test"]
+  },
+  {
+    "termJa": "スタブ",
+    "termEn": "Stub",
+    "category": "ソフトウェア開発",
+    "description": "トップダウン結合テストで下位モジュールの代わりに用いる仮実装。",
+    "tip": "呼び出し側のテストを先に進めるために返却値を固定する。",
+    "keywords": ["testing", "top-down", "placeholder"]
+  },
+  {
+    "termJa": "ドライバ",
+    "termEn": "Driver",
+    "category": "ソフトウェア開発",
+    "description": "ボトムアップ結合テストで上位モジュールの代わりに用いるテスト用呼び出し部。",
+    "tip": "対象モジュールを単独で呼び出して検証する。",
+    "keywords": ["testing", "bottom-up", "harness"]
+  },
+  {
+    "termJa": "ペネトレーションテスト",
+    "termEn": "Penetration Testing",
+    "category": "セキュリティ",
+    "description": "実際の攻撃手法を模倣し、脆弱性が悪用可能か検証する試験。",
+    "tip": "許可を得た範囲で行い、結果は改善計画に反映する。",
+    "keywords": ["security testing", "vulnerability", "ethical hacking"]
+  },
+  {
+    "termJa": "HTTPS",
+    "termEn": "Hypertext Transfer Protocol Secure",
+    "category": "ネットワーク",
+    "description": "HTTPにTLSを組み合わせ、通信の暗号化と認証を行うプロトコル。",
+    "tip": "サーバ証明書で接続相手を確認できる点がHTTPとの違い。",
+    "keywords": ["TLS", "encryption", "web"]
+  },
+  {
+    "termJa": "TLS",
+    "termEn": "Transport Layer Security",
+    "category": "ネットワーク",
+    "description": "通信路確立時に鍵交換・暗号化・改ざん検知を行うセキュアプロトコル。",
+    "tip": "ハンドシェイクとレコードプロトコルの2段構成を理解する。",
+    "keywords": ["handshake", "certificate", "confidentiality"]
+  },
+  {
+    "termJa": "DMZ",
+    "termEn": "Demilitarized Zone",
+    "category": "ネットワーク",
+    "description": "社内LANとインターネットの中間に設ける公開サーバ用の緩衝ネットワーク。",
+    "tip": "DMZから社内へのアクセスは最小限に制御する。",
+    "keywords": ["network security", "segmentation", "perimeter"]
+  },
+  {
+    "termJa": "WAF",
+    "termEn": "Web Application Firewall",
+    "category": "ネットワーク",
+    "description": "HTTPトラフィックを解析し、アプリ層の攻撃パターンを遮断するセキュリティ装置。",
+    "tip": "SQLインジェクションやXSSの防御に有効。",
+    "keywords": ["security", "HTTP", "application layer"]
+  },
+  {
+    "termJa": "ステートフルインスペクション",
+    "termEn": "Stateful Inspection",
+    "category": "ネットワーク",
+    "description": "過去の通信状態を記録し、正当なセッションに合致するパケットのみ通過させる方式。",
+    "tip": "静的フィルタとの違いを整理する。",
+    "keywords": ["firewall", "session", "packet filtering"]
+  },
+  {
+    "termJa": "情報処理",
+    "termEn": "Information Processing",
+    "category": "基礎理論",
+    "description": "データを収集・加工・出力する一連の処理。ITパスポートや基本情報で頻出の概念。",
+    "tip": "「情報処理技術者試験」は Information Technology Engineers Examination と表現されます。",
+    "keywords": ["processing", "data flow"]
+  },
+  {
+    "termJa": "アルゴリズム",
+    "termEn": "Algorithm",
+    "category": "プログラミング",
+    "description": "問題を解決するための手順や計算方法。流れ図や疑似言語で表すことが多い。",
+    "tip": "英語でも “algorithm” と表記し、擬似言語は pseudocode と呼ばれます。",
+    "keywords": ["flowchart", "procedure"]
+  },
+  {
+    "termJa": "可用性",
+    "termEn": "Availability",
+    "category": "情報セキュリティ",
+    "description": "必要なときにシステムや情報へアクセスできる性質。CIA（Confidentiality, Integrity, Availability）の一つ。",
+    "tip": "システムの稼働率 uptime ratio と合わせて出題されます。",
+    "keywords": ["CIA", "uptime"]
+  },
+  {
+    "termJa": "関係データベース",
+    "termEn": "Relational Database",
+    "category": "データベース",
+    "description": "表（テーブル）と行（レコード）、列（フィールド）で構成されるデータベースモデル。",
+    "tip": "正規化は normalization、主キーは primary key、外部キーは foreign key と表します。",
+    "keywords": ["SQL", "normalization"]
+  },
+  {
+    "termJa": "スループット",
+    "termEn": "Throughput",
+    "category": "システム戦略",
+    "description": "単位時間あたりに処理できる仕事量。性能評価やボトルネック分析で重要。",
+    "tip": "最大値は peak throughput、平均値は average throughput と表記されることがあります。",
+    "keywords": ["performance", "TPS"]
+  },
+  {
+    "termJa": "ガントチャート",
+    "termEn": "Gantt Chart",
+    "category": "プロジェクト管理",
+    "description": "作業と期間を横棒で表した工程管理図。進捗管理に利用される。",
+    "tip": "進捗率は progress rate、クリティカルパスは critical path です。",
+    "keywords": ["schedule", "critical path"]
+  }
+]

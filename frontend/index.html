@@ -282,6 +282,14 @@
                     <h2 class="kid-title text-2xl font-bold text-gray-800 dark:text-gray-100">📊 学習進捗</h2>
                     <p class="text-gray-600 dark:text-gray-300 mt-2">がんばりの記録をグラフでチェック！</p>
                 </div>
+                <div class="glass-card p-6 rounded-2xl cursor-pointer" onclick="navigateTo('vocabulary-view')">
+                    <h2 class="kid-title text-2xl font-bold text-gray-800 dark:text-gray-100">📘 専門言葉暗記</h2>
+                    <p class="text-gray-600 dark:text-gray-300 mt-2">試験頻出の英単語と用語を素早く確認しよう。</p>
+                </div>
+                <div class="glass-card p-6 rounded-2xl cursor-pointer" onclick="navigateTo('exam-updates-view')">
+                    <h2 class="kid-title text-2xl font-bold text-gray-800 dark:text-gray-100">📰 試験情報</h2>
+                    <p class="text-gray-600 dark:text-gray-300 mt-2">申込・出題傾向など最新トピックをチェック。</p>
+                </div>
             </main>
         </div>
         
@@ -405,6 +413,72 @@
             </main>
         </div>
 
+        <!-- ===== VIEW: VOCABULARY ===== -->
+        <div id="vocabulary-view" class="view">
+            <div class="container mx-auto p-4 md:p-6">
+                <div class="flex items-center mb-6">
+                    <button onclick="navigateTo('dashboard-view')" class="mr-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" aria-label="ダッシュボードに戻る">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <div>
+                        <h1 class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">専門言葉暗記</h1>
+                        <p class="text-gray-600 dark:text-gray-300 mt-1">基本情報技術者試験で頻出する専門言葉の意味を英語で整理しました。</p>
+                    </div>
+                </div>
+
+                <div class="glass-card p-5 rounded-2xl mb-6">
+                    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                        <div class="relative w-full md:w-1/2">
+                            <input id="vocab-search" type="search" placeholder="英語 / 日本語 / カテゴリで検索..." class="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 pl-11 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400" aria-label="ボキャブラリー検索">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"><i class="fas fa-search"></i></span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="vocab-clear" class="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-600 text-sm font-medium text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition">クリア</button>
+                            <button id="vocab-random" class="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition" aria-label="ランダム用語を表示">ランダム表示</button>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Tip: 出題ジャンルごとにまとめているので、苦手分野をキーワードで探してみましょう。</p>
+                </div>
+
+                <div id="vocab-empty-state" class="hidden glass-card p-6 rounded-2xl text-center border border-dashed border-blue-300 dark:border-blue-700">
+                    <p class="text-gray-500 dark:text-gray-300">該当する用語が見つかりませんでした。検索キーワードを変えてみてください。</p>
+                </div>
+
+                <div id="vocab-list" class="grid grid-cols-1 gap-4 md:grid-cols-2"></div>
+            </div>
+        </div>
+
+        <!-- ===== VIEW: EXAM UPDATES ===== -->
+        <div id="exam-updates-view" class="view">
+            <div class="container mx-auto p-4 md:p-6">
+                <div class="flex items-center mb-6">
+                    <button onclick="navigateTo('dashboard-view')" class="mr-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" aria-label="ダッシュボードに戻る">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <div>
+                        <h1 class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">試験情報</h1>
+                        <p class="text-gray-600 dark:text-gray-300 mt-1">申込スケジュール、制度変更、学習アドバイスなどを定期的に更新できます。</p>
+                    </div>
+                </div>
+
+                <div class="glass-card p-5 rounded-2xl mb-6">
+                    <div class="flex flex-wrap gap-2" id="exam-update-filters">
+                        <button data-update-filter="all" class="update-filter-btn px-4 py-2 rounded-full bg-blue-600 text-white text-sm font-semibold">すべて</button>
+                        <button data-update-filter="official" class="update-filter-btn px-4 py-2 rounded-full border border-gray-200 dark:border-gray-600 text-sm font-semibold text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition">公式発表</button>
+                        <button data-update-filter="procedure" class="update-filter-btn px-4 py-2 rounded-full border border-gray-200 dark:border-gray-600 text-sm font-semibold text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition">手続き</button>
+                        <button data-update-filter="study" class="update-filter-btn px-4 py-2 rounded-full border border-gray-200 dark:border-gray-600 text-sm font-semibold text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition">学習アドバイス</button>
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-3">必要に応じて <code>examUpdateEntries</code> に項目を追加すれば新しいトピックをすぐに反映できます。</p>
+                </div>
+
+                <div id="exam-updates-empty" class="hidden glass-card p-6 rounded-2xl text-center border border-dashed border-blue-300 dark:border-blue-700">
+                    <p class="text-gray-500 dark:text-gray-300">該当する更新情報がありません。別のフィルターをお試しください。</p>
+                </div>
+
+                <div id="exam-updates-list" class="space-y-4"></div>
+            </div>
+        </div>
+
         <!-- ===== VIEW: PROGRESS ===== -->
         <div id="progress-view" class="view">
             <div class="container mx-auto p-4 md:p-6">
@@ -513,6 +587,59 @@
             progressFilter: 'all'
         };
 
+        let vocabularyEntries = [];
+        const fallbackVocabularyEntries = [];
+
+        const examUpdateEntries = [
+            {
+                date: '2025-01-15',
+                title: '2025年春期試験のインターネット申込開始',
+                summary: 'IPA 公式サイトで春期 基本情報技術者試験の申込受付がスタートしました。締切日は 2月7日（金）17:00 です。',
+                link: 'https://www.jitec.ipa.go.jp/1_00topic/topic_20250115.html',
+                type: 'official'
+            },
+            {
+                date: '2024-12-20',
+                title: '出題範囲アップデート：AI・データ利活用の比重が増加',
+                summary: '公式シラバス Version 5.0 で AI 活用やデータ分析分野の比重が高まりました。ディープラーニングの基礎用語を復習しましょう。',
+                link: 'https://www.jitec.ipa.go.jp/1_11seido/syllabus.html',
+                type: 'official'
+            },
+            {
+                date: '2024-11-30',
+                title: '午前試験 CBT 受験の当日持ち物チェック',
+                summary: '受験票、本人確認書類、シャープペンシル（会場指定の場合）などを前日までに確認。試験開始 30 分前の到着を推奨します。',
+                type: 'procedure'
+            },
+            {
+                date: '2024-11-05',
+                title: '直前期の学習アドバイス：重点 3 テーマ',
+                summary: '① データ構造とアルゴリズム、② ネットワークとセキュリティ、③ プロジェクト管理の 3 分野を集中的に確認しましょう。',
+                type: 'study'
+            }
+        ];
+
+        async function loadVocabularyEntries() {
+            const searchValue = vocabSearchInput ? vocabSearchInput.value : '';
+            try {
+                const res = await fetch('./vocabulary_terms.json');
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                if (Array.isArray(data) && data.length > 0) {
+                    vocabularyEntries = data;
+                } else {
+                    console.warn('vocabulary_terms.json is empty or not an array. Falling back to defaults.');
+                    vocabularyEntries = fallbackVocabularyEntries.slice();
+                }
+            } catch (err) {
+                console.error('Failed to load vocabulary_terms.json:', err);
+                vocabularyEntries = fallbackVocabularyEntries.slice();
+            }
+            renderVocabularyList(searchValue);
+        }
+
+        let activeUpdateFilter = 'all';
+
         // Chart.js theming helpers (light/dark aware)
         function isDarkMode() {
             return document.documentElement.classList.contains('dark');
@@ -547,6 +674,105 @@
             }
             return [];
         }
+
+        function formatJapaneseDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            if (Number.isNaN(date.getTime())) return dateStr;
+            return new Intl.DateTimeFormat('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' }).format(date);
+        }
+
+        function highlightUpdateFilter(filter) {
+            document.querySelectorAll('.update-filter-btn').forEach(btn => {
+                const isActive = btn.dataset.updateFilter === filter;
+                btn.classList.toggle('bg-blue-600', isActive);
+                btn.classList.toggle('text-white', isActive);
+                btn.classList.toggle('border', !isActive);
+                btn.classList.toggle('border-gray-200', !isActive);
+                btn.classList.toggle('dark:border-gray-600', !isActive);
+            });
+        }
+
+        function renderVocabularyList(filterText = '') {
+            const listEl = document.getElementById('vocab-list');
+            const emptyEl = document.getElementById('vocab-empty-state');
+            if (!listEl) return;
+
+            const normalized = filterText.trim().toLowerCase();
+            const filtered = vocabularyEntries.filter(entry => {
+                if (!normalized) return true;
+                const haystack = [entry.termJa, entry.termEn, entry.category, ...(entry.keywords || [])]
+                    .filter(Boolean)
+                    .join(' ')
+                    .toLowerCase();
+                return haystack.includes(normalized);
+            });
+
+            listEl.innerHTML = '';
+
+            if (emptyEl) {
+                emptyEl.classList.toggle('hidden', filtered.length > 0);
+            }
+
+            filtered.forEach(entry => {
+                const card = document.createElement('article');
+                card.className = 'glass-card p-5 rounded-2xl shadow-sm border border-transparent hover:border-blue-200 dark:hover:border-blue-500 transition';
+                const keywords = (entry.keywords || []).map(tag => `<span class="inline-block px-2 py-1 text-xs rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-200">${tag}</span>`).join(' ');
+                card.innerHTML = `
+                    <div class="flex items-center justify-between gap-2">
+                        <p class="kid-title text-xl font-bold text-gray-800 dark:text-gray-100">${entry.termJa}</p>
+                        <span class="text-xs font-semibold px-2 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-200">${entry.category}</span>
+                    </div>
+                    <p class="mt-1 text-lg font-semibold text-gray-700 dark:text-gray-200">${entry.termEn}</p>
+                    <p class="mt-3 text-sm text-gray-600 dark:text-gray-300 leading-relaxed">${entry.description}</p>
+                    ${entry.tip ? `<p class="mt-3 text-xs text-blue-600 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 px-3 py-2 rounded-lg">Tip: ${entry.tip}</p>` : ''}
+                    ${keywords ? `<div class="mt-3 flex flex-wrap gap-2">${keywords}</div>` : ''}
+                `;
+                listEl.appendChild(card);
+            });
+        }
+
+        function renderExamUpdates(filter = activeUpdateFilter) {
+            const listEl = document.getElementById('exam-updates-list');
+            const emptyEl = document.getElementById('exam-updates-empty');
+            if (!listEl) return;
+
+            activeUpdateFilter = filter;
+            highlightUpdateFilter(filter);
+
+            const filtered = examUpdateEntries.filter(entry => {
+                if (filter === 'all') return true;
+                return entry.type === filter;
+            }).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            listEl.innerHTML = '';
+
+            if (emptyEl) {
+                emptyEl.classList.toggle('hidden', filtered.length > 0);
+            }
+
+            filtered.forEach(entry => {
+                const item = document.createElement('article');
+                item.className = 'glass-card p-5 rounded-2xl border border-transparent hover:border-blue-200 dark:hover:border-blue-500 transition';
+                const linkHtml = entry.link ? `<a href="${entry.link}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-sm text-blue-600 dark:text-blue-300 font-semibold hover:underline">詳細を見る <i class="fas fa-arrow-right"></i></a>` : '';
+                const typeLabelMap = {
+                    official: '公式発表',
+                    procedure: '手続き',
+                    study: '学習アドバイス'
+                };
+                const typeLabel = typeLabelMap[entry.type] || 'お知らせ';
+                item.innerHTML = `
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="text-sm font-semibold text-blue-600 dark:text-blue-300">${formatJapaneseDate(entry.date)}</div>
+                        <span class="text-xs font-semibold px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">${typeLabel}</span>
+                    </div>
+                    <h2 class="mt-3 kid-title text-xl font-bold text-gray-800 dark:text-gray-100">${entry.title}</h2>
+                    <p class="mt-2 text-sm text-gray-600 dark:text-gray-300 leading-relaxed">${entry.summary}</p>
+                    ${linkHtml ? `<div class="mt-4">${linkHtml}</div>` : ''}
+                `;
+                listEl.appendChild(item);
+            });
+        }
         function refreshChartsForTheme() {
             // Re-render charts if their canvases are present
             if (document.getElementById('score-chart')) {
@@ -559,6 +785,45 @@
 
         const views = document.querySelectorAll('.view');
         const appContainer = document.getElementById('app');
+        const vocabSearchInput = document.getElementById('vocab-search');
+        const vocabClearBtn = document.getElementById('vocab-clear');
+        const vocabRandomBtn = document.getElementById('vocab-random');
+
+        if (vocabSearchInput) {
+            vocabSearchInput.addEventListener('input', (e) => {
+                renderVocabularyList(e.target.value);
+            });
+        }
+
+        if (vocabClearBtn) {
+            vocabClearBtn.addEventListener('click', () => {
+                if (vocabSearchInput) {
+                    vocabSearchInput.value = '';
+                    vocabSearchInput.focus();
+                }
+                renderVocabularyList('');
+            });
+        }
+
+        if (vocabRandomBtn) {
+            vocabRandomBtn.addEventListener('click', () => {
+                if (!vocabularyEntries.length) return;
+                const randomEntry = vocabularyEntries[Math.floor(Math.random() * vocabularyEntries.length)];
+                if (vocabSearchInput) {
+                    vocabSearchInput.value = randomEntry.termJa;
+                }
+                renderVocabularyList(randomEntry.termJa);
+            });
+        }
+
+        document.querySelectorAll('[data-update-filter]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const filter = btn.dataset.updateFilter || 'all';
+                renderExamUpdates(filter);
+            });
+        });
+        loadVocabularyEntries();
+        renderExamUpdates('all');
 
         function navigateTo(viewId) {
             views.forEach(view => view.classList.remove('active'));
@@ -577,6 +842,17 @@
             }
             if (viewId === 'simulation-setup-view') {
                 populateSimulationYears();
+            }
+            if (viewId === 'vocabulary-view') {
+                if (!vocabularyEntries.length) {
+                    loadVocabularyEntries();
+                } else {
+                    const value = vocabSearchInput ? vocabSearchInput.value : '';
+                    renderVocabularyList(value);
+                }
+            }
+            if (viewId === 'exam-updates-view') {
+                renderExamUpdates(activeUpdateFilter);
             }
         }
         
