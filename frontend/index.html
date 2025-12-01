@@ -871,7 +871,9 @@
                 year: null,
                 usePdf: false,
                 pdfSrc: null,
+                pdfTotal: null,
                 pdfIndex: 0,
+                onPdfNavChange: null,
                 answerKey: null,
                 userAnswers: [],
                 timerInterval: null
@@ -897,6 +899,9 @@
             let selectedQuestions = [];
             let timeLimit = 0;
             let modeTitle = "";
+            let usePdf = false;
+            let pdfSrc = null;
+            let pdfTotal = null;
             
             if (config.mode === 'quick') {
                 if (!questions || questions.length === 0) {
@@ -910,7 +915,33 @@
                 modeTitle = "🚀 クイッククイズ";
             } else if (config.mode === 'simulation') {
                 const sub = config.subMode || 'regular';
-                if (sub === 'regular') {
+                if (sub === 'kamokuB') {
+                    const yearKey = String(config.year);
+                    const settings = kamokuBConfig[yearKey];
+                    if (!settings) {
+                        alert(`${yearKey}年の科目B試験の設定が見つかりません。`);
+                        return;
+                    }
+                    pdfSrc = settings.pdfSrc || null;
+                    pdfTotal = settings.questionCount || 0;
+                    if (!pdfSrc) {
+                        alert('PDFファイルのパスが設定されていません。');
+                        return;
+                    }
+                    if (!pdfTotal || pdfTotal <= 0) {
+                        alert('科目B試験の問題数が正しく設定されていません。');
+                        return;
+                    }
+                    selectedQuestions = Array.from({ length: pdfTotal }, (_, idx) => ({
+                        id: idx + 1,
+                        question: `科目B試験 ${yearKey}年第${idx + 1}問`,
+                        category: '科目B試験'
+                    }));
+                    config.year = yearKey;
+                    timeLimit = settings.timeLimit || 0;
+                    modeTitle = '⏱️ 科目B試験';
+                    usePdf = true;
+                } else if (sub === 'regular') {
                     try {
                         // The year is selected in the simulation setup view
                         const year = document.getElementById('year-regular').value;
@@ -990,13 +1021,16 @@
                         modeTitle = "⏱️ 科目A修了認定試験（90分）";
                     }
                 }
+
                 if (config.year) {
                     // If final subMode stored YYYYMM (e.g., 202507), format as '2025年7月 過去問'
                     if (config.subMode === 'final' && String(config.year).length === 6) {
                         const y = String(config.year).slice(0,4);
                         const m = String(config.year).slice(4).replace(/^0/, '');
                         modeTitle += `（${y}年${m}月 過去問）`;
-                    } else {
+                    } else if (config.subMode === 'kamokuB') {
+                        modeTitle += `（${config.year}年 過去問）`;
+                    } else if (config.year !== 'sample') {
                         modeTitle += `（${config.year}年 過去問）`;
                     }
                 }
@@ -1027,8 +1061,11 @@
                 mode: config.mode,
                 subMode: config.subMode || null,
                 year: config.year || null,
-                
+                usePdf,
+                pdfSrc: usePdf ? pdfSrc : null,
+                pdfTotal,
                 pdfIndex: 0,
+                onPdfNavChange: null,
                 answerKey: null,
                 userAnswers: [],
                 timerInterval: null
@@ -1554,13 +1591,22 @@
                 btn.dataset.index = i;
                 btn.className = 'w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors text-sm font-medium bg-transparent';
                 btn.addEventListener('click', () => {
-                    state.quiz.currentIndex = i;
-                    displayQuestion();
-                    highlightNavButton(i);
+                    if (state.quiz.usePdf) {
+                        state.quiz.pdfIndex = i;
+                        state.quiz.currentIndex = i;
+                        if (typeof state.quiz.onPdfNavChange === 'function') {
+                            state.quiz.onPdfNavChange();
+                        }
+                    } else {
+                        state.quiz.currentIndex = i;
+                        displayQuestion();
+                        highlightNavButton(i);
+                    }
                 });
                 navContainer.appendChild(btn);
             }
-            highlightNavButton(0);
+            const initialIndex = state.quiz.usePdf ? (state.quiz.pdfIndex || 0) : 0;
+            highlightNavButton(initialIndex);
         }
 
         function highlightNavButton(index) {
@@ -1763,71 +1809,63 @@
         
         // Render the PDF for 科目A試験 when a year is selected
         async function renderSimulationPDF() {
-            const qEl = document.getElementById('question');
+            const questionContainer = document.getElementById('question');
             const optionsContainer = document.getElementById('options-container');
             const nextBtn = document.getElementById('next-btn');
             const feedbackEl = document.getElementById('feedback');
             feedbackEl.textContent = '';
 
-            // Hide options and next button in PDF mode
-            optionsContainer.innerHTML = '';
-            optionsContainer.style.display = 'none';
-            nextBtn.style.display = 'none';
-
-            // Show embedded PDF
+            // Show embedded PDF above answer options
             const src = state.quiz.pdfSrc;
-            let total;
-            if (state.quiz.subMode === 'kamokuB') {
-                total = 20;
-            } else if (state.quiz.year === 'sample') {
-                total = 60; // 60 questions for the sample exam
-            } else {
-                total = 20; // 80 for regular Kamoku A exams
-            }
-            const pdfHtml = src ? `
-                <div class="space-y-4">
-                    <div class="pdf-container" style="height: 55vh;">
-                        <object data="${src}#toolbar=1&navpanes=0&scrollbar=1" type="application/pdf" width="100%" height="100%">
-                            <iframe src="${src}" width="100%" height="100%" title="試験問題PDF"></iframe>
-                        </object>
-                    </div>
-                    <div id="pdf-answer-panel" class="glass-card p-4 rounded-xl">
-                        <div class="flex items-center justify-between mb-3">
-                            <h3 class="kid-title text-lg font-bold">解答入力（${total}問）</h3>
-                            <!-- Score hidden by request -->
-                        </div>
-                        <!-- Per-question MCQ panel -->
-                        <div id="pdf-mcq" class="mb-4">
-                            <div class="flex items-center justify-between mb-3">
-                                <div class="text-sm text-gray-700 dark:text-gray-300">問題 <span id="pdf-cur">1</span> / ${total}</div>
-                                <div class="text-xs text-gray-500" id="pdf-choice-status"></div>
-                            </div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <button class="pdf-mcq-btn rounded-xl border border-purple-500 dark:border-purple-400 px-4 py-2 text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 transition" data-choice="ア">ア</button>
-                                <button class="pdf-mcq-btn rounded-xl border border-purple-500 dark:border-purple-400 px-4 py-2 text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 transition" data-choice="イ">イ</button>
-                                <button class="pdf-mcq-btn rounded-xl border border-purple-500 dark:border-purple-400 px-4 py-2 text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 transition" data-choice="ウ">ウ</button>
-                                <button class="pdf-mcq-btn rounded-xl border border-purple-500 dark:border-purple-400 px-4 py-2 text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 transition" data-choice="エ">エ</button>
-                            </div>
-                            <div class="mt-4 flex items-center justify-between gap-2">
-                                <button id="pdf-prev" class="font-bold py-2.5 px-5 rounded-xl bg-purple-600 text-white shadow-lg ring-2 ring-purple-300 hover:bg-purple-700 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-purple-400 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-400 disabled:text-gray-100 disabled:ring-0">← 戻る</button>
-                                <button id="pdf-next" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">次へ →</button>
-                            </div>
-                        </div>
-                    </div>
+            const total = state.quiz.pdfTotal || (state.quiz.subMode === 'kamokuB'
+                ? (state.quiz.questions?.length || 20)
+                : (state.quiz.year === 'sample' ? 60 : 20));
+
+            const pdfWrapper = document.createElement('div');
+            pdfWrapper.className = 'space-y-4 mb-4';
+            pdfWrapper.innerHTML = src ? `
+                <div class="pdf-container" style="height: 55vh;">
+                    <object data="${src}#toolbar=1&navpanes=0&scrollbar=1" type="application/pdf" width="100%" height="100%">
+                        <iframe src="${src}" width="100%" height="100%" title="試験問題PDF"></iframe>
+                    </object>
                 </div>
             ` : '<p class="text-red-600">PDFを読み込めませんでした。</p>';
-            qEl.innerHTML = pdfHtml;
+            questionContainer.innerHTML = '';
+            questionContainer.appendChild(pdfWrapper);
 
-            // Prepare answers storage
+            // Prepare answer buttons (same layout as 科目A)
+            optionsContainer.style.display = 'grid';
+            optionsContainer.innerHTML = '';
+            ['ア','イ','ウ','エ'].forEach(choice => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'option-btn w-full p-4 border rounded-lg text-left transition-colors font-semibold';
+                btn.dataset.choice = choice;
+                btn.textContent = choice;
+                btn.addEventListener('click', () => handlePdfChoice(choice, btn));
+                optionsContainer.appendChild(btn);
+            });
+
+            nextBtn.style.display = 'flex';
+            nextBtn.textContent = '次へ →';
+
             state.quiz.userAnswers = new Array(total).fill(null);
+            state.quiz.pdfTotal = total;
 
             // Load answer key once
             async function ensureAnswerKey() {
                 if (state.quiz.answerKey) return;
+                const yearKey = String(state.quiz.year);
+                if (state.quiz.subMode === 'kamokuB') {
+                    state.quiz.answerKey = await loadKamokuBAnswerKey(yearKey);
+                    if (!state.quiz.answerKey) {
+                        console.warn(`科目B試験 ${yearKey}年の解答が設定されていません。kamokuBConfig を更新してください。`);
+                    }
+                    return;
+                }
                 try {
                     const res = await fetch('./kakomon_answers.json');
                     const all = await res.json();
-                    const yearKey = String(state.quiz.year);
                     // Try exact key (YYYYMM) first, then fallback to YYYY only
                     let key = all?.['科目A試験']?.[yearKey] || null;
                     if (!key && yearKey.length === 6) {
@@ -1845,89 +1883,42 @@
             }
             await ensureAnswerKey();
 
-            function updatePdfScore() {
-                const total = state.quiz.userAnswers.length;
-                let correct = 0;
-                if (state.quiz.answerKey) {
-                    for (let i = 0; i < total; i++) {
-                        const idx = String(i + 1);
-                        const choice = state.quiz.userAnswers[i]?.choice;
-                        if (choice && state.quiz.answerKey[idx] && state.quiz.answerKey[idx] === choice) correct++;
-                    }
+            const progressInfoEl = document.getElementById('progress-info');
+
+            function renderPdfState() {
+                state.quiz.currentIndex = state.quiz.pdfIndex;
+                highlightNavButton(state.quiz.pdfIndex);
+                if (progressInfoEl) {
+                    progressInfoEl.style.display = 'block';
+                    progressInfoEl.textContent = `問題 ${state.quiz.pdfIndex + 1} / ${total}`;
                 }
-                // Score hidden by request
+                document.querySelectorAll('#options-container .option-btn').forEach(btn => {
+                    const selected = state.quiz.userAnswers[state.quiz.pdfIndex]?.choice === btn.dataset.choice;
+                    btn.classList.toggle('selected', selected);
+                    btn.classList.toggle('bg-blue-500', selected);
+                    btn.classList.toggle('text-white', selected);
+                });
+                nextBtn.textContent = state.quiz.pdfIndex === total - 1 ? '採点' : '次へ →';
             }
 
-            // Per-question MCQ logic
-            const curEl = document.getElementById('pdf-cur');
-            const choiceStatus = document.getElementById('pdf-choice-status');
-            const nextEl = document.getElementById('pdf-next');
-            const prevEl = document.getElementById('pdf-prev');
-            const checkEl = document.getElementById('pdf-check');
-            // If key missing, keep check disabled
-            if (checkEl && !state.quiz.answerKey) checkEl.disabled = true;
-            function renderMcqPanel() {
-                curEl.textContent = String(state.quiz.pdfIndex + 1);
-                const ans = state.quiz.userAnswers[state.quiz.pdfIndex];
-                choiceStatus.textContent = ans && ans.choice ? `選択: ${ans.choice}` : '';
-                // highlight selected
-                document.querySelectorAll('#pdf-mcq .pdf-mcq-btn').forEach(b => {
-                    const c = b.getAttribute('data-choice');
-                    const selected = !!(ans && ans.choice === c);
-                    b.classList.toggle('bg-purple-400', !selected); // light hover color when not selected
-                    b.classList.toggle('bg-blue-500', selected); // distinct selected color
-                    b.classList.toggle('text-white', selected);
-                    b.classList.toggle('border-emerald-500', selected);
-                    b.classList.toggle('border-purple-500', !selected);
-                });
-                // Bounds: disable prev at 1st, next at last
-                prevEl.disabled = state.quiz.pdfIndex === 0;
-                // At last question, keep Next enabled and switch label to '採点'
-                if (state.quiz.pdfIndex === total - 1) {
-                    nextEl.textContent = '採点';
-                    nextEl.disabled = false;
-                } else {
-                    nextEl.textContent = '次へ →';
-                    nextEl.disabled = false;
-                }
+            function handlePdfChoice(choice, button) {
+                state.quiz.userAnswers[state.quiz.pdfIndex] = { ...(state.quiz.userAnswers[state.quiz.pdfIndex] || {}), choice };
+                markNavAnswered(state.quiz.pdfIndex);
+                renderPdfState();
             }
 
-            document.querySelectorAll('#pdf-mcq .pdf-mcq-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const choice = btn.getAttribute('data-choice');
-                    state.quiz.userAnswers[state.quiz.pdfIndex] = { ...(state.quiz.userAnswers[state.quiz.pdfIndex]||{}), choice };
-                    renderMcqPanel();
-                });
-            });
-            prevEl.addEventListener('click', () => {
-                if (state.quiz.pdfIndex > 0) {
-                    state.quiz.pdfIndex--;
-                    renderMcqPanel();
-                }
-            });
-            nextEl.addEventListener('click', () => {
+            nextBtn.onclick = () => {
                 if (state.quiz.pdfIndex < total - 1) {
                     state.quiz.pdfIndex++;
-                    renderMcqPanel();
-                    // Optional: auto-scroll the grid to the current item
+                    renderPdfState();
                 } else {
-                    // Last question: grade based on selected year/type and show results
                     showResults();
                 }
-            });
+            };
 
-            // Initialize panel
-            state.quiz.pdfIndex = 0;
-            renderMcqPanel();
-
-            // If key failed to load (likely file:// CORS), show inline help and disable check
-            const keyWarn = document.getElementById('pdf-key-warning');
-            if (!state.quiz.answerKey && keyWarn) {
-                keyWarn.classList.remove('hidden');
-                keyWarn.innerHTML = `解答キーを読み込めませんでした。HTTPサーバーで開いてください。<br>
-                    Windows(PowerShell): <code>cd frontend; python -m http.server 8000</code><br>
-                    その後: <a href="http://localhost:8000/" class="underline">http://localhost:8000/</a> を開く`;
-            }
+            state.quiz.pdfIndex = state.quiz.pdfIndex || 0;
+            renderPdfState();
+            state.quiz.onPdfNavChange = renderPdfState;
         }
 
         // Theme: init from localStorage and toggle
@@ -2019,6 +2010,33 @@
         };
 
         const simulationYears = ['sample', 2023, 2024, 2025];
+        const kamokuBConfig = {
+            '2025': { pdfSrc: '../kakomon/kamokuB/2025B.pdf', questionCount: 20, timeLimit: 60 * 60 },
+            '2024': { pdfSrc: '../kakomon/kamokuB/2024B.pdf', questionCount: 20, timeLimit: 60 * 60 },
+            '2023': { pdfSrc: '../kakomon/kamokuB/2023B.pdf', questionCount: 20, timeLimit: 60 * 60 }
+        };
+
+        async function loadKamokuBAnswerKey(yearKey) {
+            const cfg = kamokuBConfig[yearKey];
+            if (!cfg) return null;
+            if (cfg.answers && typeof cfg.answers === 'object') {
+                return cfg.answers;
+            }
+            if (cfg.answerFile) {
+                try {
+                    const res = await fetch(cfg.answerFile);
+                    if (res.ok) {
+                        const json = await res.json();
+                        return json && typeof json === 'object' ? json : null;
+                    }
+                    console.warn(`科目B試験 ${yearKey}年の解答ファイル(${cfg.answerFile})を読み込めませんでした: ${res.status}`);
+                } catch (err) {
+                    console.error(`科目B試験 ${yearKey}年の解答ファイル取得に失敗しました`, err);
+                }
+            }
+            return null;
+        }
+
         function populateSimulationYears() {
             const regSel = document.getElementById('year-regular');
             const finSel = document.getElementById('year-final');
@@ -2033,17 +2051,26 @@
                 return b - a; // Sort numbers descending
             });
 
-            // Fill regular and kamokuB with simple year entries
-            [regSel, kamokuBSel].forEach(sel => {
-                sel.innerHTML = '';
-                sortedYears.forEach(y => {
-                    const opt = document.createElement('option');
-                    opt.value = y;
-                    opt.textContent = (y === 'sample') ? 'サンプル問題' : `${y}年`;
-                    sel.appendChild(opt);
-                });
-                if (sortedYears.length > 0) sel.value = sortedYears[0];
+            regSel.innerHTML = '';
+            sortedYears.forEach(y => {
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.textContent = (y === 'sample') ? 'サンプル問題' : `${y}年`;
+                regSel.appendChild(opt);
             });
+            if (sortedYears.length > 0) regSel.value = sortedYears[0];
+
+            const kamokuBYears = Object.keys(kamokuBConfig).sort((a, b) => b.localeCompare(a));
+            kamokuBSel.innerHTML = '';
+            kamokuBYears.forEach(y => {
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.textContent = `${y}年`;
+                kamokuBSel.appendChild(opt);
+            });
+            if (kamokuBYears.length > 0) {
+                kamokuBSel.value = kamokuBYears[0];
+            }
 
             (async () => {
                 finSel.innerHTML = '';
