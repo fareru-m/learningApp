@@ -1202,7 +1202,7 @@
                     button.textContent = optionText;
                     button.classList.add('option-btn', 'w-full', 'p-4', 'border', 'rounded-lg', 'text-left', 'transition-colors');
                     button.onclick = () => selectAnswer(optionText, button);
-                    optionsContainer.appendChild(button);
+                    optionsContainer.appendChild(button); 
                 });
             } else {
                 // --- Handle new object format for Simulations ---
@@ -2011,28 +2011,22 @@
 
         const simulationYears = ['sample', 2023, 2024, 2025];
         const kamokuBConfig = {
-            '2025': { pdfSrc: '../kakomon/kamokuB/2025B.pdf', questionCount: 20, timeLimit: 60 * 60 },
-            '2024': { pdfSrc: '../kakomon/kamokuB/2024B.pdf', questionCount: 20, timeLimit: 60 * 60 },
-            '2023': { pdfSrc: '../kakomon/kamokuB/2023B.pdf', questionCount: 20, timeLimit: 60 * 60 }
+            'sample': { pdfSrc: '../kakomon/kamokuB/sampleB.pdf', questionCount: 20, timeLimit: 100 * 60 },
+            '2025': { pdfSrc: '../kakomon/kamokuB/2025B.pdf', questionCount: 6, timeLimit: 30 * 60 },
+            '2024': { pdfSrc: '../kakomon/kamokuB/2024B.pdf', questionCount: 6, timeLimit: 30 * 60 },
+            '2023': { pdfSrc: '../kakomon/kamokuB/2023B.pdf', questionCount: 6, timeLimit: 30 * 60 }
         };
 
         async function loadKamokuBAnswerKey(yearKey) {
-            const cfg = kamokuBConfig[yearKey];
-            if (!cfg) return null;
-            if (cfg.answers && typeof cfg.answers === 'object') {
-                return cfg.answers;
-            }
-            if (cfg.answerFile) {
-                try {
-                    const res = await fetch(cfg.answerFile);
-                    if (res.ok) {
-                        const json = await res.json();
-                        return json && typeof json === 'object' ? json : null;
-                    }
-                    console.warn(`科目B試験 ${yearKey}年の解答ファイル(${cfg.answerFile})を読み込めませんでした: ${res.status}`);
-                } catch (err) {
-                    console.error(`科目B試験 ${yearKey}年の解答ファイル取得に失敗しました`, err);
+            try {
+                const res = await fetch('./kakomon_answers.json');
+                if (res.ok) {
+                    const json = await res.json();
+                    return json && json["科目B試験"] && json["科目B試験"][yearKey] ? json["科目B試験"][yearKey] : null;
                 }
+                console.warn(`科目B試験 解答ファイルを読み込めませんでした: ${res.status}`);
+            } catch (err) {
+                console.error(`科目B試験 解答ファイル取得に失敗しました`, err);
             }
             return null;
         }
@@ -2060,12 +2054,16 @@
             });
             if (sortedYears.length > 0) regSel.value = sortedYears[0];
 
-            const kamokuBYears = Object.keys(kamokuBConfig).sort((a, b) => b.localeCompare(a));
+            const kamokuBYears = Object.keys(kamokuBConfig).sort((a, b) => {
+                if (a === 'sample') return -1;
+                if (b === 'sample') return 1;
+                return b.localeCompare(a);
+            });
             kamokuBSel.innerHTML = '';
             kamokuBYears.forEach(y => {
                 const opt = document.createElement('option');
                 opt.value = y;
-                opt.textContent = `${y}年`;
+                opt.textContent = (y === 'sample') ? 'サンプル問題' : `${y}年`;
                 kamokuBSel.appendChild(opt);
             });
             if (kamokuBYears.length > 0) {
