@@ -366,5 +366,509 @@
     "description": "作業と期間を横棒で表した工程管理図。進捗管理に利用される。",
     "tip": "進捗率は progress rate、クリティカルパスは critical path です。",
     "keywords": ["schedule", "critical path"]
+  },
+  {
+    "termJa": "割り込み",
+    "termEn": "Interrupt",
+    "category": "コンピュータシステム",
+    "description": "CPUの処理を一時中断し、優先度の高い処理を先に実行させる仕組み。外部割り込みと内部割り込みに分類される。",
+    "tip": "英語でも interrupt。ハードウェア割り込み hardware interrupt とソフトウェア割り込み software interrupt の違いを押さえる。",
+    "keywords": ["CPU", "hardware interrupt", "software interrupt"]
+  },
+  {
+    "termJa": "仮想記憶",
+    "termEn": "Virtual Memory",
+    "category": "コンピュータシステム",
+    "description": "主記憶より大きなメモリ空間を提供するために、主記憶と補助記憶を組み合わせて見かけ上の連続アドレス空間を実現する仕組み。",
+    "tip": "英語でも virtual memory。ページング paging、スワッピング swapping とセットで出題される。",
+    "keywords": ["paging", "address space", "swap"]
+  },
+  {
+    "termJa": "ページング方式",
+    "termEn": "Paging",
+    "category": "コンピュータシステム",
+    "description": "主記憶と仮想記憶空間を等しい大きさのページに分割し、ページ単位で管理する記憶管理方式。",
+    "tip": "ページ表は page table、ページフォールトは page fault と書く。",
+    "keywords": ["page table", "page fault", "memory management"]
+  },
+  {
+    "termJa": "スタック",
+    "termEn": "Stack",
+    "category": "基礎理論",
+    "description": "最後に入れたデータが最初に取り出される LIFO 方式のデータ構造。関数呼び出し時の戻りアドレスや局所変数の保存に使われる。",
+    "tip": "英語でも stack。push / pop という操作名はそのまま覚える。",
+    "keywords": ["LIFO", "data structure", "push", "pop"]
+  },
+  {
+    "termJa": "キュー",
+    "termEn": "Queue",
+    "category": "基礎理論",
+    "description": "最初に入れたデータが最初に取り出される FIFO 方式のデータ構造。待ち行列やジョブスケジューリングのモデルとして使われる。",
+    "tip": "英語でも queue。enqueue / dequeue という用語も合わせて覚える。",
+    "keywords": ["FIFO", "data structure", "enqueue", "dequeue"]
+  },
+  {
+    "termJa": "正規化",
+    "termEn": "Normalization",
+    "category": "データベース",
+    "description": "データの重複や更新異常を防ぐために表を分解し、一定の正規形に変換する設計手法。第一正規形から第三正規形までが基本情報でよく出題される。",
+    "tip": "英語でも normalization。関数従属性 functional dependency とセットで学習する。",
+    "keywords": ["1NF", "2NF", "3NF", "functional dependency"]
+  },
+  {
+    "termJa": "トランザクション",
+    "termEn": "Transaction",
+    "category": "データベース",
+    "description": "データベース処理における不可分な一連の処理単位。途中で障害が発生しても一貫性を保つため ACID 特性が求められる。",
+    "tip": "英語でも transaction。ACID は Atomicity, Consistency, Isolation, Durability の略。",
+    "keywords": ["ACID", "commit", "rollback"]
+  },
+  {
+    "termJa": "排他制御",
+    "termEn": "Mutual Exclusion",
+    "category": "ソフトウェア開発",
+    "description": "複数プロセスやスレッドが同時に共有資源へアクセスしないように制御すること。ロックやセマフォなどの仕組みを用いる。",
+    "tip": "英語では mutual exclusion や mutex。deadlock（デッドロック）との関係も試験で問われる。",
+    "keywords": ["mutex", "lock", "critical section"]
+  },
+  {
+    "termJa": "デッドロック",
+    "termEn": "Deadlock",
+    "category": "ソフトウェア開発",
+    "description": "複数プロセスがお互いに資源を待ち合うことで、どのプロセスも先に進まなくなった状態。",
+    "tip": "英語でも deadlock。相互排他・占有と保持・不可奪・循環待ちの4条件を整理する。",
+    "keywords": ["concurrency", "resource", "wait"]
+  },
+  {
+    "termJa": "IaaS",
+    "termEn": "Infrastructure as a Service",
+    "category": "システム戦略",
+    "description": "仮想サーバやストレージなどインフラ基盤をインターネット経由で提供するクラウドサービス形態。利用者はOSやミドルウェアを自分で構成する。",
+    "tip": "PaaS, SaaS と並べて比較される。英語表記はそのまま IaaS。",
+    "keywords": ["cloud", "virtual machine", "infrastructure"]
+  },
+  {
+    "termJa": "PaaS",
+    "termEn": "Platform as a Service",
+    "category": "システム戦略",
+    "description": "アプリケーション実行基盤（OS, ミドルウェア, 開発環境など）をサービスとして提供するクラウド形態。利用者はアプリケーションの開発と実行に専念できる。",
+    "tip": "英語表記はそのまま PaaS。IaaS と SaaS の中間レイヤと覚える。",
+    "keywords": ["cloud", "platform", "runtime"]
+  },
+  {
+    "termJa": "SaaS",
+    "termEn": "Software as a Service",
+    "category": "システム戦略",
+    "description": "ソフトウェアをインターネット経由で提供するクラウド形態。利用者はブラウザなどからサービスとして利用し、インストールや保守は不要。",
+    "tip": "英語表記はそのまま SaaS。subscription（サブスクリプション）型料金とセットで出題される。",
+    "keywords": ["cloud", "application", "subscription"]
+  },
+  {
+    "termJa": "OSI参照モデル",
+    "termEn": "OSI Reference Model",
+    "category": "ネットワーク",
+    "description": "通信機能を7つの階層に分けて整理したモデル。物理層からアプリケーション層までに分類される。",
+    "tip": "英語でも OSI reference model。layer（層）と protocol（プロトコル）という語も押さえる。",
+    "keywords": ["layer", "protocol", "network model"]
+  },
+  {
+    "termJa": "プロトコル",
+    "termEn": "Protocol",
+    "category": "ネットワーク",
+    "description": "コンピュータ同士が通信するための約束事や手順。データ形式や順序、エラー処理方法などを定める。",
+    "tip": "英語でも protocol。communication protocol とも呼ばれる。",
+    "keywords": ["rules", "communication", "standard"]
+  },
+  {
+    "termJa": "IPアドレス",
+    "termEn": "IP Address",
+    "category": "ネットワーク",
+    "description": "ネットワーク上で機器を一意に識別するための番号。IPv4では32ビット、IPv6では128ビットで表現される。",
+    "tip": "英語でも IP address。subnet mask（サブネットマスク）と一緒に計算問題が出題される。",
+    "keywords": ["IPv4", "IPv6", "host"]
+  },
+  {
+    "termJa": "サブネットマスク",
+    "termEn": "Subnet Mask",
+    "category": "ネットワーク",
+    "description": "IPアドレスのうち、ネットワーク部とホスト部の境界を示すビットマスク。",
+    "tip": "英語でも subnet mask。ビットごとの AND 演算でネットワークアドレスを求める問題が頻出。",
+    "keywords": ["network address", "bit mask", "IPv4"]
+  },
+  {
+    "termJa": "SQLインジェクション",
+    "termEn": "SQL Injection",
+    "category": "セキュリティ",
+    "description": "入力値に不正なSQL文を埋め込み、データベースに想定外の命令を実行させる攻撃手法。",
+    "tip": "英語でも SQL injection。prepared statement（プリペアドステートメント）や input validation（入力検証）が対策として問われる。",
+    "keywords": ["attack", "database", "input validation"]
+  },
+  {
+    "termJa": "クロスサイトスクリプティング",
+    "termEn": "Cross-site Scripting",
+    "category": "セキュリティ",
+    "description": "Webページに悪意あるスクリプトを埋め込み、閲覧したユーザのブラウザで実行させる攻撃。略してXSSとも呼ばれる。",
+    "tip": "英語では cross-site scripting, XSS。output encoding（出力エスケープ）や CSP（Content Security Policy）とあわせて学ぶ。",
+    "keywords": ["XSS", "script", "web attack"]
+  },
+  {
+    "termJa": "ハッシュ関数",
+    "termEn": "Hash Function",
+    "category": "情報セキュリティ",
+    "description": "任意長のデータから固定長の値（ハッシュ値）を計算する一方向関数。同じ入力からは必ず同じ値が得られる。",
+    "tip": "英語でも hash function。message digest（メッセージダイジェスト）や collision（衝突）という用語も試験に出る。",
+    "keywords": ["digest", "one-way", "collision"]
+  },
+  {
+    "termJa": "公開鍵暗号方式",
+    "termEn": "Public-key Cryptography",
+    "category": "情報セキュリティ",
+    "description": "公開鍵と秘密鍵というペアを使う暗号方式。公開鍵で暗号化し秘密鍵で復号する。電子署名にも利用される。",
+    "tip": "英語では public-key cryptography。RSA や digital signature（電子署名）とセットで覚える。",
+    "keywords": ["public key", "private key", "RSA"]
+  },
+  {
+    "termJa": "フルバックアップ",
+    "termEn": "Full Backup",
+    "category": "システム運用",
+    "description": "対象データをすべて一括して取得するバックアップ方式。復旧が簡単な一方、時間と容量が大きくなる。",
+    "tip": "英語でも full backup。差分バックアップ differential backup、増分バックアップ incremental backup と比較される。",
+    "keywords": ["backup", "recovery", "data protection"]
+  },
+  {
+    "termJa": "差分バックアップ",
+    "termEn": "Differential Backup",
+    "category": "システム運用",
+    "description": "直近のフルバックアップ以降に変更されたデータだけを保存する方式。復旧時はフルバックアップと最新の差分バックアップを使う。",
+    "tip": "英語でも differential backup。増分バックアップ incremental backup との違いが試験で問われる。",
+    "keywords": ["backup", "differential", "recovery"]
+  },
+  {
+    "termJa": "増分バックアップ",
+    "termEn": "Incremental Backup",
+    "category": "システム運用",
+    "description": "直近のバックアップ（フルまたは増分）以降に変更されたデータだけを保存する方式。バックアップ時間と容量を抑えられるが、復旧時の手順は複雑になる。",
+    "tip": "英語でも incremental backup。full / differential / incremental の3種類をセットで整理する。",
+    "keywords": ["backup", "incremental", "recovery"]
+  },
+  {
+    "termJa": "擬似言語",
+    "termEn": "Pseudocode",
+    "category": "プログラミング",
+    "description": "特定のプログラミング言語に依存せず、自然言語に近い記述でアルゴリズムを表現するための記法。",
+    "tip": "英語でも pseudocode。if, while, for などのキーワードはそのまま使われることが多い。",
+    "keywords": ["algorithm", "description", "flow"]
+  },
+  {
+    "termJa": "線形探索",
+    "termEn": "Linear Search",
+    "category": "アルゴリズム",
+    "description": "先頭から順に要素を調べていき、一致するデータを探す探索アルゴリズム。計算量はO(n)。",
+    "tip": "英語でも linear search。sequential search とも呼ばれる。",
+    "keywords": ["search", "O(n)", "algorithm"]
+  },
+  {
+    "termJa": "二分探索",
+    "termEn": "Binary Search",
+    "category": "アルゴリズム",
+    "description": "ソート済みの配列を半分に分割しながら目的の値を探す探索アルゴリズム。計算量はO(log n)。",
+    "tip": "英語でも binary search。mid, left, right といった変数名がよく使われる。",
+    "keywords": ["search", "O(log n)", "sorted"]
+  },
+  {
+    "termJa": "バブルソート",
+    "termEn": "Bubble Sort",
+    "category": "アルゴリズム",
+    "description": "隣り合う要素を比較して交換する操作を繰り返す単純な整列アルゴリズム。計算量はO(n^2)。",
+    "tip": "英語でも bubble sort。swap（交換）という動詞と一緒に使われる。",
+    "keywords": ["sort", "O(n^2)", "swap"]
+  },
+  {
+    "termJa": "クイックソート",
+    "termEn": "Quick Sort",
+    "category": "アルゴリズム",
+    "description": "基準値（ピボット）を選び、要素を小さいグループと大きいグループに分割して再帰的に整列する高速なソートアルゴリズム。平均計算量はO(n log n)。",
+    "tip": "英語でも quick sort。pivot（ピボット）という語とセットで覚える。",
+    "keywords": ["sort", "pivot", "divide and conquer"]
+  },
+  {
+    "termJa": "クリティカルパス",
+    "termEn": "Critical Path",
+    "category": "プロジェクト管理",
+    "description": "プロジェクト完了までの経路のうち、所要時間が最も長く、遅延が全体の遅れに直結する一連の作業経路。",
+    "tip": "英語でも critical path。PERT 図やガントチャートと一緒に出題される。",
+    "keywords": ["project schedule", "PERT", "delay"]
+  },
+  {
+    "termJa": "スコープ",
+    "termEn": "Scope",
+    "category": "プロジェクト管理",
+    "description": "プロジェクトで実施する作業範囲と成果物の境界。何をやるか / やらないか を明確にする。",
+    "tip": "英語でも scope。scope creep（スコープの膨張）という表現も重要。",
+    "keywords": ["project scope", "requirements", "boundary"]
+  },
+  {
+    "termJa": "SLA",
+    "termEn": "Service Level Agreement",
+    "category": "サービスマネジメント",
+    "description": "サービス提供者と利用者の間で合意した、サービス品質や稼働率などの目標値を定めた契約文書。",
+    "tip": "英語でも Service Level Agreement。uptime, response time といった指標とセットで覚える。",
+    "keywords": ["service level", "agreement", "KPI"]
+  },
+  {
+    "termJa": "ヘルプデスク",
+    "termEn": "Help Desk",
+    "category": "サービスマネジメント",
+    "description": "利用者からの問い合わせや障害連絡を一元的に受け付ける窓口機能。インシデント管理の起点となる。",
+    "tip": "英語でも help desk。service desk（サービスデスク）との違いも試験で問われることがある。",
+    "keywords": ["support", "incident", "user"]
+  },
+  {
+    "termJa": "スレッド",
+    "termEn": "Thread",
+    "category": "コンピュータシステム",
+    "description": "プロセス内部で動作する実行単位。複数スレッドで処理を並行させることで応答性やスループットを高める。",
+    "tip": "英語でも thread。multi-thread（マルチスレッド）や context switch（コンテキストスイッチ）とセットで出題される。",
+    "keywords": ["process", "concurrency", "context switch"]
+  },
+  {
+    "termJa": "コンテキストスイッチ",
+    "termEn": "Context Switch",
+    "category": "コンピュータシステム",
+    "description": "CPUが実行中のプロセスやスレッドを切り替えるために、レジスタやプログラムカウンタなどの状態を保存・復元する処理。",
+    "tip": "英語でも context switch。オーバーヘッド overhead という語と合わせて覚える。",
+    "keywords": ["CPU", "process", "overhead"]
+  },
+  {
+    "termJa": "ラウンドロビン方式",
+    "termEn": "Round-robin Scheduling",
+    "category": "コンピュータシステム",
+    "description": "各プロセスに一定の時間枠（タイムクォンタム）を順番に割り当てるスケジューリング方式。対話型システムでよく用いられる。",
+    "tip": "英語でも round-robin scheduling。time quantum（タイムクォンタム）という表現も試験に出る。",
+    "keywords": ["scheduling", "time slice", "fairness"]
+  },
+  {
+    "termJa": "LAN",
+    "termEn": "Local Area Network",
+    "category": "ネットワーク",
+    "description": "建物内やフロア内など、比較的狭い範囲を対象としたコンピュータネットワーク。",
+    "tip": "英語でも Local Area Network。対になる用語として WAN（Wide Area Network）がよく出る。",
+    "keywords": ["network", "local", "Ethernet"]
+  },
+  {
+    "termJa": "WAN",
+    "termEn": "Wide Area Network",
+    "category": "ネットワーク",
+    "description": "都市間・国間など、広い地理的範囲を接続するネットワーク。公衆回線や専用線などを利用する。",
+    "tip": "英語でも Wide Area Network。LAN / MAN / WAN の違いが基本情報で問われる。",
+    "keywords": ["wide area", "public line", "carrier"]
+  },
+  {
+    "termJa": "デフォルトゲートウェイ",
+    "termEn": "Default Gateway",
+    "category": "ネットワーク",
+    "description": "他ネットワーク（他サブネット）にパケットを転送する際の転送先ルータ。宛先ルートが見つからない場合に利用される。",
+    "tip": "英語でも default gateway。ルーティング表 routing table と一緒に出題される。",
+    "keywords": ["router", "routing", "IP"]
+  },
+  {
+    "termJa": "参照整合性",
+    "termEn": "Referential Integrity",
+    "category": "データベース",
+    "description": "外部キーが常に実在する主キーを参照するという制約。親レコード削除時の連鎖動作などと合わせて扱われる。",
+    "tip": "英語でも referential integrity。foreign key constraint とセットで覚える。",
+    "keywords": ["foreign key", "constraint", "consistency"]
+  },
+  {
+    "termJa": "ビュー",
+    "termEn": "View",
+    "category": "データベース",
+    "description": "1つ以上の表を元に作られる仮想的な表。実体を持たず、問い合わせ時に定義に従ってデータが取得される。",
+    "tip": "英語でも view。view definition（ビュー定義）や logical table（論理表）という表現もある。",
+    "keywords": ["virtual table", "SQL", "SELECT"]
+  },
+  {
+    "termJa": "ロールバック",
+    "termEn": "Rollback",
+    "category": "データベース",
+    "description": "トランザクション中に行った更新を取り消し、開始前の状態に戻す処理。障害発生時や異常検出時に実行される。",
+    "tip": "英語でも rollback。対応する用語として commit（コミット）も必ずセットで覚える。",
+    "keywords": ["transaction", "undo", "ACID"]
+  },
+  {
+    "termJa": "インシデント",
+    "termEn": "Incident",
+    "category": "サービスマネジメント",
+    "description": "サービスの中断や品質の低下を引き起こす、またはそのおそれのある出来事。ユーザからの問い合わせも含まれる。",
+    "tip": "英語でも incident。incident management（インシデント管理）というプロセス名もそのまま使われる。",
+    "keywords": ["service", "failure", "support"]
+  },
+  {
+    "termJa": "リスクアセスメント",
+    "termEn": "Risk Assessment",
+    "category": "情報セキュリティ",
+    "description": "情報資産に対する脅威と脆弱性を洗い出し、発生可能性と影響度を評価する活動。",
+    "tip": "英語でも risk assessment。likelihood（発生可能性）と impact（影響度）という言葉がよく使われる。",
+    "keywords": ["risk", "likelihood", "impact"]
+  },
+  {
+    "termJa": "BCP",
+    "termEn": "Business Continuity Plan",
+    "category": "システム戦略",
+    "description": "災害や障害などの緊急事態発生時でも、重要業務を継続または早期復旧するための計画。",
+    "tip": "英語でも Business Continuity Plan。DR（Disaster Recovery）とセットで問われる。",
+    "keywords": ["continuity", "disaster", "recovery"]
+  },
+  {
+    "termJa": "DRサイト",
+    "termEn": "Disaster Recovery Site",
+    "category": "システム戦略",
+    "description": "大規模災害などで主サイトが利用不能になった場合に、業務を引き継ぐための予備サイト。ホットサイトやウォームサイトなどの種類がある。",
+    "tip": "英語でも disaster recovery site。hot site / warm site / cold site の違いを整理する。",
+    "keywords": ["backup site", "hot site", "warm site"]
+  },
+  {
+    "termJa": "情報資産",
+    "termEn": "Information Asset",
+    "category": "情報セキュリティ",
+    "description": "組織にとって価値のある情報およびそれを扱うシステムや設備、人など。機密性・完全性・可用性の観点から保護対象となる。",
+    "tip": "英語でも information asset。asset management（資産管理）という用語と一緒に覚える。",
+    "keywords": ["asset", "value", "protection"]
+  },
+  {
+    "termJa": "脆弱性",
+    "termEn": "Vulnerability",
+    "category": "情報セキュリティ",
+    "description": "システムや運用上の弱点で、脅威に悪用されるとインシデントにつながる可能性があるもの。",
+    "tip": "英語でも vulnerability。threat（脅威）との組み合わせでリスクが決まる。",
+    "keywords": ["weakness", "security hole", "risk"]
+  },
+  {
+    "termJa": "マルウェア",
+    "termEn": "Malware",
+    "category": "情報セキュリティ",
+    "description": "コンピュータやネットワークに被害を与えることを目的として作成された悪意あるソフトウェアの総称。ウイルスやワーム、トロイの木馬などが含まれる。",
+    "tip": "英語でも malware。virus, worm, Trojan horse といった種類名もセットで問われる。",
+    "keywords": ["virus", "worm", "Trojan"]
+  },
+  {
+    "termJa": "コンプライアンス",
+    "termEn": "Compliance",
+    "category": "経営戦略",
+    "description": "法令や社内規程、社会的規範などを遵守して企業活動を行うこと。",
+    "tip": "英語でも compliance。corporate governance（コーポレートガバナンス）とあわせて学習する。",
+    "keywords": ["law", "regulation", "governance"]
+  },
+  {
+    "termJa": "コーポレートガバナンス",
+    "termEn": "Corporate Governance",
+    "category": "経営戦略",
+    "description": "企業が適切・健全に運営されるように、経営を監視・牽制する仕組み。取締役会や社外取締役の役割などを含む。",
+    "tip": "英語でも corporate governance。stakeholder（ステークホルダ）という語もあわせて覚える。",
+    "keywords": ["management", "control", "stakeholder"]
+  },
+  {
+    "termJa": "ステークホルダ",
+    "termEn": "Stakeholder",
+    "category": "経営戦略",
+    "description": "企業活動によって利害の影響を受ける関係者。株主、従業員、取引先、顧客、地域社会などが含まれる。",
+    "tip": "英語でも stakeholder。shareholder（株主）との違いを押さえる。",
+    "keywords": ["interest", "shareholder", "society"]
+  },
+  {
+    "termJa": "著作権",
+    "termEn": "Copyright",
+    "category": "法務",
+    "description": "創作的な表現を保護する権利。プログラムやマニュアル、Webページなどの著作物も対象となる。",
+    "tip": "英語でも copyright。infringement（侵害）という語と一緒に出題される。",
+    "keywords": ["intellectual property", "work", "infringement"]
+  },
+  {
+    "termJa": "ライセンス",
+    "termEn": "License",
+    "category": "法務",
+    "description": "ソフトウェアやコンテンツなどの著作物の利用条件を定めた契約。商用ライセンスやオープンソースライセンスなどの種類がある。",
+    "tip": "英語でも license。GPL, MIT License, Creative Commons などの具体的なライセンス名も基本情報で出題される。",
+    "keywords": ["software license", "OSS", "terms"]
+  },
+  {
+    "termJa": "2進数",
+    "termEn": "Binary Number",
+    "category": "基礎理論",
+    "description": "0と1の2つの数字だけで数を表す記数法。コンピュータ内部の表現で用いられる。",
+    "tip": "英語でも binary number。bit（ビット）、byte（バイト）と一緒に覚える。",
+    "keywords": ["bit", "base 2", "representation"]
+  },
+  {
+    "termJa": "16進数",
+    "termEn": "Hexadecimal Number",
+    "category": "基礎理論",
+    "description": "0〜9とA〜Fの16種類の記号で数を表す記数法。アドレスや色コードなどでよく使われる。",
+    "tip": "英語でも hexadecimal number。0xFF のように 0x を付けて表記されることが多い。",
+    "keywords": ["base 16", "hex", "conversion"]
+  },
+  {
+    "termJa": "補数表現",
+    "termEn": "Complement Representation",
+    "category": "コンピュータシステム",
+    "description": "負の数を表現するために2の補数などを用いる方式。引き算を加算で実現できる。",
+    "tip": "英語では two's complement（2の補数）が頻出。負数の範囲やオーバーフローに注意。",
+    "keywords": ["two's complement", "negative", "overflow"]
+  },
+  {
+    "termJa": "FIFO",
+    "termEn": "First In, First Out",
+    "category": "コンピュータシステム",
+    "description": "先に入れたものが先に出ていく方式。キューやバッファ、ジョブスケジューリングなどで用いられる。",
+    "tip": "英語でも First In, First Out。LIFO（Last In, First Out）との対比で覚える。",
+    "keywords": ["queue", "order", "buffer"]
+  },
+  {
+    "termJa": "LIFO",
+    "termEn": "Last In, First Out",
+    "category": "コンピュータシステム",
+    "description": "最後に入れたものが最初に出ていく方式。スタックの挙動を表す。",
+    "tip": "英語でも Last In, First Out。push / pop という操作とセットで問われる。",
+    "keywords": ["stack", "order", "push"]
+  },
+  {
+    "termJa": "DoS攻撃",
+    "termEn": "Denial of Service Attack",
+    "category": "情報セキュリティ",
+    "description": "大量の通信や不正な要求を送りつけることで、サービスを利用不能状態に追い込む攻撃。",
+    "tip": "英語でも denial of service attack。分散型は DDoS（Distributed Denial of Service）と呼ばれる。",
+    "keywords": ["availability", "traffic", "DDoS"]
+  },
+  {
+    "termJa": "フィッシング",
+    "termEn": "Phishing",
+    "category": "情報セキュリティ",
+    "description": "偽のメールやWebサイトで利用者をだまして、IDやパスワード、クレジットカード番号などの個人情報を盗み取る詐欺行為。",
+    "tip": "英語でも phishing。spoofed site（偽装サイト）や fake email（偽メール）という表現も使われる。",
+    "keywords": ["fraud", "email", "credential"]
+  },
+  {
+    "termJa": "ソーシャルエンジニアリング",
+    "termEn": "Social Engineering",
+    "category": "情報セキュリティ",
+    "description": "人の心理的な隙や習慣を突いて、パスワードや機密情報を不正に取得する手口。覗き見やなりすまし電話などが含まれる。",
+    "tip": "英語でも social engineering。shoulder surfing（ショルダーハッキング）など具体的手法名も試験に出る。",
+    "keywords": ["human", "trick", "information theft"]
+  },
+  {
+    "termJa": "ブルートフォース攻撃",
+    "termEn": "Brute-force Attack",
+    "category": "情報セキュリティ",
+    "description": "考えられるパスワードや鍵を総当たりで試し、正しいものを見つけようとする攻撃。",
+    "tip": "英語でも brute-force attack。password complexity（パスワードの複雑さ）や account lockout（アカウントロックアウト）と関連する。",
+    "keywords": ["password", "trial", "attack"]
+  },
+  {
+    "termJa": "冗長構成",
+    "termEn": "Redundant Configuration",
+    "category": "システム戦略",
+    "description": "障害発生時でもサービスを継続できるように、機器や経路を二重化・多重化する構成。",
+    "tip": "英語でも redundant configuration。failover（フェイルオーバ）や cluster（クラスタ）と一緒に覚える。",
+    "keywords": ["redundancy", "failover", "HA"]
   }
 ]

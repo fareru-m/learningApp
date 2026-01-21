@@ -4,16 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>基本情報技術者試験　勉強アプリ</A></title>
-    <!-- Chosen Palette: Calm Neutrals -->
-    <!-- Application Structure Plan: The application is designed as a multi-view Single Page App (SPA) managed via JavaScript. The structure consists of a central 'Dashboard' acting as a hub, from which users can navigate to different learning modules: 'Quick Quiz', 'Exam Simulation', 'Category Practice', and 'Progress Tracker'. This hub-and-spoke model was chosen for its intuitive navigation, allowing users to easily select their desired task without a confusing linear flow. State (like the current view or quiz settings) is managed in a simple JavaScript object. This design separates user goals into clear, accessible sections, enhancing usability and focusing the learning experience. -->
-    <!-- Visualization & Content Choices: 
-    - Report Info: Overall quiz score. Goal: Inform. Viz: Donut Chart (Chart.js/Canvas). Interaction: Hover for details. Justification: Quick, visual summary of performance.
-    - Report Info: Score breakdown by category. Goal: Compare. Viz: Bar Chart (Chart.js/Canvas). Interaction: Filterable in a future version. Justification: Helps identify weak areas.
-    - Report Info: Score history over time. Goal: See Change. Viz: Line Chart (Chart.js/Canvas). Interaction: Tooltip shows score on a specific date. Justification: Motivates user by showing improvement trends.
-    - Report Info: Quiz questions. Goal: Organize/Inform. Viz: Interactive list (HTML/JS). Interaction: Click to review answers. Justification: Essential for learning from mistakes.
-    - Report Info: Study Modes. Goal: Organize. Viz: Interactive Cards (HTML/Tailwind). Interaction: Click to start a mode. Justification: Clear, task-oriented navigation from the main dashboard.
-    -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <!-- Minimal head notes removed for brevity. Design comments and long notes were trimmed to keep the file concise. -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = { darkMode: 'class' };
@@ -105,16 +96,9 @@
         }
         .rainbow-btn:hover { background-position: 100% 0; transform: translateY(-1px); }
         .rainbow-btn:active { transform: translateY(0) scale(0.99); }
-        /* Dark mode question text color */
-        .dark #question { color: #E5E7EB; }
-        .dark #quiz-mode-title { color: #E5E7EB; }
-        /* Force all UI text to white in dark mode for better readability */
-        .dark #app :where(h1,h2,h3,h4,h5,h6,p,span,li,dt,dd,label,a,button,small,strong,em,th,td,div) {
-            color: #FFFFFF !important;
-        }
-        /* Ensure question/title are readable (also inherit but explicit for safety) */
-        .dark #question, .dark #quiz-mode-title { color: #FFFFFF; }
-        /* Dark mode: make 終了 button text black for contrast on light button bg */
+        /* Dark mode colors */
+        .dark #quiz-mode-title, .dark #question { color: #FFFFFF; }
+        .dark #app :where(h1,h2,h3,h4,h5,h6,p,span,li,dt,dd,label,a,button,small,strong,em,th,td,div) { color: #FFFFFF !important; }
         .dark #end-btn { color: #111827 !important; }
         /* Base text color switches automatically with theme */
         #app { color: #111827; } /* near black for light backgrounds */
@@ -125,10 +109,7 @@
         .dark .text-green-600 { color: #34D399 !important; }
         .dark .text-red-600 { color: #F87171 !important; }
         .dark .text-blue-600 { color: #93C5FD !important; }
-        /* Ensure question/title are readable (also inherit but explicit for safety) */
-        .dark #question, .dark #quiz-mode-title { color: #FFFFFF; }
-        /* Dark mode: make 終了 button text black for contrast on light button bg */
-        .dark #end-btn { color: #111827 !important; }
+    /* kept earlier dark-mode rules above; duplicates removed */
         /* Floating Music Button + Panel */
         .music-fab {
             position: fixed; bottom: 1rem; right: 1rem; z-index: 60;
@@ -1209,7 +1190,6 @@
                 Object.entries(q.options).forEach(([key, value]) => {
                     const button = document.createElement('button');
                     button.classList.add('option-btn', 'w-full', 'p-4', 'border', 'rounded-lg', 'text-left', 'transition-colors', 'flex', 'items-center');
-// Ubah p-4 menjadi p-6 untuk padding yang lebih lebar
                     
                     // Cek apakah value adalah path gambar (berekstensi .jpg, .png, dll)
                     const isImage = /\.(jpg|jpeg|png|gif)$/i.test(value);
@@ -1349,9 +1329,7 @@
             const tc = document.getElementById('timer-container');
             if (tc) tc.classList.add('hidden');
             
-            // Debug log
-            console.log('Quiz Mode:', state.quiz.mode);
-            console.log('Answer Key exists:', !!state.quiz.answerKey);
+            // Debug logs removed for brevity
             
             if (state.quiz.mode === 'simulation') {
                 const total = state.quiz.questions.length;
@@ -1363,11 +1341,7 @@
                     const userAnswer = state.quiz.userAnswers[i]?.choice;
                     const correctAnswer = state.quiz.answerKey ? state.quiz.answerKey[String(qno)] : undefined;
                     
-                    console.log(`Pertanyaan ${qno}:`, {
-                        userAnswer,
-                        correctAnswer,
-                        match: userAnswer === correctAnswer
-                    });
+                    // per-question debug logs removed
                     
                     const isRight = !!(userAnswer && correctAnswer && userAnswer.trim() === correctAnswer.trim());
                     if (isRight) correct++;
@@ -1377,7 +1351,7 @@
                     state.quiz.userAnswers[i].isCorrect = isRight;
                 }
                 
-                console.log('Total Benar:', correct);
+                // total-correct debug log removed
                 state.quiz.score = correct;
             }
 
