@@ -259,6 +259,10 @@
                     <h2 class="kid-title text-2xl font-bold text-gray-800 dark:text-gray-100">📚 カテゴリ別練習</h2>
                     <p class="text-gray-600 dark:text-gray-300 mt-2">好きなテーマを選んで集中トレーニング！</p>
                 </div>
+                <div class="glass-card p-6 rounded-2xl cursor-pointer" onclick="navigateTo('search-view')">
+                    <h2 class="kid-title text-2xl font-bold text-gray-800 dark:text-gray-100">🔍 問題を検索</h2>
+                    <p class="text-gray-600 dark:text-gray-300 mt-2">キーワードで問題を探して練習しよう！</p>
+                </div>
                 <div class="glass-card p-6 rounded-2xl cursor-pointer" onclick="navigateTo('progress-view')">
                     <h2 class="kid-title text-2xl font-bold text-gray-800 dark:text-gray-100">📊 学習進捗</h2>
                     <p class="text-gray-600 dark:text-gray-300 mt-2">がんばりの記録をグラフでチェック！</p>
@@ -392,6 +396,65 @@
                     <button onclick="navigateTo('dashboard-view')" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 transition-colors shadow-md">完了</button>
                 </div>
             </main>
+        </div>
+
+        <!-- ===== VIEW: SEARCH QUESTIONS ===== -->
+        <div id="search-view" class="view">
+            <div class="container mx-auto p-4 md:p-6">
+                <div class="flex items-center mb-6">
+                    <button onclick="navigateTo('dashboard-view')" class="mr-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" aria-label="ダッシュボードに戻る">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <div>
+                        <h1 class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">問題を検索</h1>
+                        <p class="text-gray-600 dark:text-gray-300 mt-1">キーワードで問題を検索して、その場で解いてみよう</p>
+                    </div>
+                </div>
+
+                <div class="glass-card p-5 rounded-2xl mb-6">
+                    <div class="flex flex-col gap-3">
+                        <input id="search-keyword" type="text" placeholder="例：配列、ソート、ネットワーク..." class="w-full rounded-xl border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-gray-800 dark:text-gray-100 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" aria-label="検索キーワード">
+                        <div class="flex gap-2">
+                            <button onclick="performSearch()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors">
+                                🔍 検索
+                            </button>
+                            <button onclick="clearSearch()" class="px-4 py-3 bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-700 text-gray-800 dark:text-white font-bold rounded-lg transition-colors">
+                                クリア
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="search-results" class="space-y-3">
+                    <!-- Results will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== MODAL: QUESTION DETAIL ===== -->
+        <div id="question-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full my-8">
+                <div class="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white" id="modal-question-title">問題</h2>
+                    <button onclick="closeQuestionModal()" class="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white text-2xl">×</button>
+                </div>
+                
+                <div class="p-6 space-y-4 max-h-96 overflow-y-auto">
+                    <div id="modal-question-text" class="text-lg text-gray-800 dark:text-gray-100"></div>
+                    <div id="modal-question-image" class="my-4"></div>
+                    <div id="modal-options" class="space-y-2"></div>
+                    <div id="modal-result" class="hidden mt-4 p-4 rounded-lg"></div>
+                </div>
+
+                <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3">
+                    <button onclick="checkAnswer()" class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors">
+                        ✓ 回答をチェック
+                    </button>
+                    <button onclick="closeQuestionModal()" class="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white font-bold rounded-lg hover:bg-gray-400 dark:hover:bg-gray-700 transition-colors">
+                        閉じる
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- ===== VIEW: VOCABULARY ===== -->
@@ -2229,6 +2292,253 @@
             }
         }
         window.showCategorySelection = showCategorySelection;
+
+        // ===== SEARCH FUNCTIONALITY =====
+        let searchResults = [];
+        let currentQuestionData = null;
+
+        // Helper function to format year for display
+        function formatExamYear(year, examType) {
+            const yearStr = String(year);
+            if (yearStr === 'sample' || year === 'sample') {
+                return 'サンプル';
+            }
+            if (yearStr.length === 6 && examType === '修了認定試験') {
+                // Format YYYYMM to YYYY年MM月 (remove leading zero from month)
+                const y = yearStr.slice(0, 4);
+                const m = yearStr.slice(4).replace(/^0/, '');
+                return `${y}年${m}月`;
+            }
+            return `${year}年`;
+        }
+
+        window.performSearch = async function() {
+            const keyword = document.getElementById('search-keyword').value.trim().toLowerCase();
+            if (!keyword) {
+                alert('キーワードを入力してください');
+                return;
+            }
+
+            const resultsContainer = document.getElementById('search-results');
+            resultsContainer.innerHTML = '<div class="text-center text-gray-600">検索中...</div>';
+
+            try {
+                // Load both question files
+                const [resA, resS] = await Promise.all([
+                    fetch('./kakomon_questionsA.json'),
+                    fetch('./kakomon_questionsS.json')
+                ]);
+                
+                const dataA = await resA.json();
+                const dataS = await resS.json();
+                
+                searchResults = [];
+                
+                // Search in 科目A試験
+                if (dataA.exam_data) {
+                    dataA.exam_data.forEach(exam => {
+                        exam.questions.forEach(q => {
+                            const questionText = q.question.toLowerCase();
+                            const optionsText = Object.values(q.options || {}).join(' ').toLowerCase();
+                            
+                            if (questionText.includes(keyword) || optionsText.includes(keyword)) {
+                                searchResults.push({
+                                    ...q,
+                                    exam_year: exam.year,
+                                    exam_type: '科目A試験',
+                                    image_file: q.image_file || ''
+                                });
+                            }
+                        });
+                    });
+                }
+                
+                // Search in 修了認定試験 (kakomon_questionsS.json)
+                if (dataS.exam_data) {
+                    dataS.exam_data.forEach(exam => {
+                        exam.questions.forEach(q => {
+                            const questionText = q.question.toLowerCase();
+                            const optionsText = Object.values(q.options || {}).join(' ').toLowerCase();
+                            
+                            if (questionText.includes(keyword) || optionsText.includes(keyword)) {
+                                searchResults.push({
+                                    ...q,
+                                    exam_year: exam.year,
+                                    exam_type: '修了認定試験',
+                                    image_file: q.image_file || ''
+                                });
+                            }
+                        });
+                    });
+                }
+                
+                renderSearchResults();
+            } catch (error) {
+                console.error('Search error:', error);
+                resultsContainer.innerHTML = '<div class="text-center text-red-600">検索エラーが発生しました</div>';
+            }
+        };
+
+        window.renderSearchResults = function() {
+            const resultsContainer = document.getElementById('search-results');
+            
+            if (searchResults.length === 0) {
+                resultsContainer.innerHTML = '<div class="text-center text-gray-600 py-8">該当する問題が見つかりません</div>';
+                return;
+            }
+
+            resultsContainer.innerHTML = '';
+            searchResults.forEach((q, index) => {
+                const resultCard = document.createElement('div');
+                resultCard.className = 'glass-card p-4 rounded-lg cursor-pointer hover:shadow-lg hover:scale-102 transition-all';
+                resultCard.onclick = () => showQuestionModal(q);
+                
+                const questionPreview = q.question.substring(0, 100) + (q.question.length > 100 ? '...' : '');
+                const yearDisplay = formatExamYear(q.exam_year, q.exam_type);
+                resultCard.innerHTML = `
+                    <div class="flex justify-between items-start gap-4">
+                        <div class="flex-1">
+                            <p class="text-xs text-gray-500 mb-1">${q.exam_type} ${yearDisplay}</p>
+                            <p class="font-semibold text-gray-800 dark:text-gray-100">第${q.id}問</p>
+                            <p class="text-sm text-gray-700 dark:text-gray-300 mt-2">${questionPreview}</p>
+                        </div>
+                        <div class="text-blue-600 text-xl">→</div>
+                    </div>
+                `;
+                resultsContainer.appendChild(resultCard);
+            });
+        };
+
+        window.showQuestionModal = function(questionData) {
+            currentQuestionData = questionData;
+            const modal = document.getElementById('question-modal');
+            const title = document.getElementById('modal-question-title');
+            const questionText = document.getElementById('modal-question-text');
+            const questionImage = document.getElementById('modal-question-image');
+            const optionsContainer = document.getElementById('modal-options');
+            const resultContainer = document.getElementById('modal-result');
+            
+            // Clear result from previous question
+            resultContainer.innerHTML = '';
+            resultContainer.classList.add('hidden');
+            
+            const yearDisplay = formatExamYear(questionData.exam_year, questionData.exam_type);
+            title.textContent = `第${questionData.id}問 (${questionData.exam_type} ${yearDisplay})`;
+            questionText.innerHTML = questionData.question.replace(/\n/g, '<br>');
+            
+            // Show image if exists
+            if (questionData.image_file) {
+                const img = document.createElement('img');
+                img.src = questionData.image_file;
+                img.className = 'max-w-full h-auto rounded-lg';
+                img.onerror = () => { questionImage.innerHTML = ''; };
+                questionImage.innerHTML = '';
+                questionImage.appendChild(img);
+            } else {
+                questionImage.innerHTML = '';
+            }
+            
+            // Render options
+            optionsContainer.innerHTML = '';
+            currentQuestionData.selectedAnswer = null;
+            
+            Object.entries(questionData.options || {}).forEach(([key, value]) => {
+                const optionBtn = document.createElement('button');
+                optionBtn.className = 'option-btn w-full p-3 border-2 border-gray-300 rounded-lg text-left hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900 transition-colors';
+                optionBtn.dataset.choice = key;
+                optionBtn.innerHTML = `<span class="font-bold text-lg mr-3">${key}</span> ${value}`;
+                optionBtn.onclick = () => {
+                    document.querySelectorAll('#modal-options .option-btn').forEach(b => {
+                        b.classList.remove('selected', 'bg-blue-500', 'text-white', 'border-blue-500');
+                    });
+                    optionBtn.classList.add('selected', 'bg-blue-500', 'text-white', 'border-blue-500');
+                    currentQuestionData.selectedAnswer = key;
+                };
+                optionsContainer.appendChild(optionBtn);
+            });
+            
+            modal.classList.remove('hidden');
+        };
+
+        window.closeQuestionModal = function() {
+            document.getElementById('question-modal').classList.add('hidden');
+        };
+
+        window.checkAnswer = async function() {
+            if (!currentQuestionData.selectedAnswer) {
+                alert('回答を選択してください');
+                return;
+            }
+
+            const resultContainer = document.getElementById('modal-result');
+            resultContainer.innerHTML = '<div class="text-center">確認中...</div>';
+            resultContainer.classList.remove('hidden');
+
+            try {
+                const res = await fetch('./kakomon_answers.json');
+                const allAnswers = await res.json();
+                
+                let correctAnswer = null;
+                
+                // Determine exam type and find answer key
+                if (currentQuestionData.exam_type === '科目A試験') {
+                    const yearKey = String(currentQuestionData.exam_year);
+                    const answers = allAnswers['科目A試験']?.[yearKey];
+                    if (answers) {
+                        correctAnswer = answers[String(currentQuestionData.id)];
+                    }
+                } else if (currentQuestionData.exam_type === '修了認定試験') {
+                    const yearKey = String(currentQuestionData.exam_year);
+                    const answers = allAnswers['科目A修了認定試験']?.[yearKey];
+                    if (answers) {
+                        correctAnswer = answers[String(currentQuestionData.id)];
+                    }
+                }
+
+                // Display result
+                const isCorrect = currentQuestionData.selectedAnswer === correctAnswer;
+                let resultHTML = '';
+
+                if (isCorrect) {
+                    resultHTML = `
+                        <div class="bg-green-100 dark:bg-green-900 border-l-4 border-green-500 p-4 rounded">
+                            <p class="text-green-800 dark:text-green-100 font-bold text-lg">✓ 正解です！</p>
+                            <p class="text-green-700 dark:text-green-200 mt-2">あなたの回答: <span class="font-bold">${currentQuestionData.selectedAnswer}</span></p>
+                        </div>
+                    `;
+                } else {
+                    resultHTML = `
+                        <div class="bg-red-100 dark:bg-red-900 border-l-4 border-red-500 p-4 rounded">
+                            <p class="text-red-800 dark:text-red-100 font-bold text-lg">✗ 不正解です</p>
+                            <p class="text-red-700 dark:text-red-200 mt-2">あなたの回答: <span class="font-bold">${currentQuestionData.selectedAnswer}</span></p>
+                            <p class="text-red-700 dark:text-red-200 mt-2">正解: <span class="font-bold text-blue-600 dark:text-blue-300">${correctAnswer || '不明'}</span></p>
+                        </div>
+                    `;
+                }
+
+                resultContainer.innerHTML = resultHTML;
+            } catch (error) {
+                console.error('Error checking answer:', error);
+                resultContainer.innerHTML = '<div class="bg-yellow-100 dark:bg-yellow-900 border-l-4 border-yellow-500 p-4 rounded text-yellow-800 dark:text-yellow-100">答案の確認に失敗しました</div>';
+            }
+        };
+
+        window.closeQuestionModal = function() {
+            document.getElementById('question-modal').classList.add('hidden');
+        };
+
+        window.clearSearch = function() {
+            document.getElementById('search-keyword').value = '';
+            document.getElementById('search-results').innerHTML = '';
+            searchResults = [];
+        };
+
+        // Close modal when clicking outside
+        document.getElementById('question-modal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeQuestionModal();
+            }
+        });
     });
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
