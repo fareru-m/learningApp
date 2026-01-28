@@ -1476,7 +1476,7 @@
                     } else {
                         reviewTitleYear = `${state.quiz.year}年`;
                     }
-                    const examLabel = state.quiz.subMode === 'final' ? '科目A修了認定試験' : '科目A試験';
+                    const examLabel = state.quiz.subMode === 'final' ? '科目A修了認定試験' : (state.quiz.subMode === 'kamokuB' ? '科目B試験' : '科目A試験');
                     header.innerHTML = `<h3 class="kid-title text-xl font-bold">解答レビュー（${reviewTitleYear} ${examLabel}）</h3>`;
                     container.appendChild(header);
 
@@ -1807,18 +1807,33 @@
             questionContainer.innerHTML = '';
             questionContainer.appendChild(pdfWrapper);
 
-            // Prepare answer buttons (same layout as 科目A)
-            optionsContainer.style.display = 'grid';
+            // Prepare text input for 科目B試験 (ania style)
+            optionsContainer.style.display = 'flex';
+            optionsContainer.className = 'flex flex-col gap-4';
             optionsContainer.innerHTML = '';
-            ['ア','イ','ウ','エ'].forEach(choice => {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'option-btn w-full p-4 border rounded-lg text-left transition-colors font-semibold';
-                btn.dataset.choice = choice;
-                btn.textContent = choice;
-                btn.addEventListener('click', () => handlePdfChoice(choice, btn));
-                optionsContainer.appendChild(btn);
-            });
+            
+            const inputContainer = document.createElement('div');
+            inputContainer.className = 'flex flex-col gap-2';
+            
+            const label = document.createElement('label');
+            label.textContent = '答え（カタカナで入力）:';
+            label.className = 'text-sm font-semibold text-gray-700 dark:text-gray-300';
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'w-full p-4 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all';
+            input.placeholder = 'ア、イ、ウ、エなどを入力';
+            input.maxLength = '2';
+            input.addEventListener('input', (e) => handleTextInput(e.target.value, input));
+            
+            const hint = document.createElement('p');
+            hint.textContent = '※ 単一の選択肢を入力してください';
+            hint.className = 'text-xs text-gray-500';
+            
+            inputContainer.appendChild(label);
+            inputContainer.appendChild(input);
+            inputContainer.appendChild(hint);
+            optionsContainer.appendChild(inputContainer);
 
             nextBtn.style.display = 'flex';
             nextBtn.textContent = '次へ →';
@@ -1866,13 +1881,33 @@
                     progressInfoEl.style.display = 'block';
                     progressInfoEl.textContent = `問題 ${state.quiz.pdfIndex + 1} / ${total}`;
                 }
-                document.querySelectorAll('#options-container .option-btn').forEach(btn => {
-                    const selected = state.quiz.userAnswers[state.quiz.pdfIndex]?.choice === btn.dataset.choice;
-                    btn.classList.toggle('selected', selected);
-                    btn.classList.toggle('bg-blue-500', selected);
-                    btn.classList.toggle('text-white', selected);
-                });
+                const input = document.querySelector('#options-container input');
+                if (input) {
+                    input.value = state.quiz.userAnswers[state.quiz.pdfIndex]?.choice || '';
+                    input.focus();
+                }
                 nextBtn.textContent = state.quiz.pdfIndex === total - 1 ? '採点' : '次へ →';
+            }
+
+            function handleTextInput(value, inputEl) {
+                const trimmed = value.trim().toUpperCase();
+                // Only allow valid katakana: ア、イ、ウ、エ、オ or A-E
+                const validAnswers = ['ア','イ','ウ','エ','オ','A','B','C','D','E'];
+                if (trimmed && !validAnswers.includes(trimmed)) {
+                    inputEl.classList.add('border-red-500');
+                } else {
+                    inputEl.classList.remove('border-red-500');
+                }
+                // Normalize: convert A->ア, B->イ, C->ウ, D->エ, E->オ
+                let normalized = trimmed;
+                const romanToKatakana = { 'A': 'ア', 'B': 'イ', 'C': 'ウ', 'D': 'エ', 'E': 'オ' };
+                if (romanToKatakana[trimmed]) {
+                    normalized = romanToKatakana[trimmed];
+                }
+                state.quiz.userAnswers[state.quiz.pdfIndex] = { ...(state.quiz.userAnswers[state.quiz.pdfIndex] || {}), choice: normalized };
+                if (trimmed) {
+                    markNavAnswered(state.quiz.pdfIndex);
+                }
             }
 
             function handlePdfChoice(choice, button) {
