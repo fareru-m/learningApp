@@ -21,7 +21,7 @@
                 radial-gradient(1000px 700px at 60% 10%, rgba(99,102,241,0.18), transparent 65%),
                 linear-gradient(180deg, #F8FAFC 0%, #EEF2F7 100%);
             background-repeat: no-repeat;
-            background-attachment: scroll; /* avoid GPU artifacts that can separate layers */
+            background-attachment: fixed;
             color: #4A4A4A;
             min-height: 100vh;
         }
@@ -338,8 +338,8 @@
             </header>
             <div class="flex flex-col md:flex-row gap-6">
                 <nav id="question-nav" class="hidden md:block w-full md:w-1/5 glass-card p-3 rounded-2xl self-start max-h-[60vh] overflow-y-auto">
-                    <div class="p-4 rounded-lg bg-gradient-to-b from-gray-900/10 to-transparent text-center mb-3">
-                        <h3 class="kid-title text-white font-bold">Soal</h3>
+                    <div class="p-4 rounded-lg bg-transparent text-center mb-3">
+                        <h3 class="kid-title text-black dark:text-white font-bold">Soal</h3>
                     </div>
                     <div id="question-nav-buttons" class="grid grid-cols-6 gap-2 px-2 pb-2">
                         <!-- Navigation buttons will be populated here -->
