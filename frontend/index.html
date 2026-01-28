@@ -931,6 +931,47 @@
             if(feedbackEl) feedbackEl.textContent = '';
         }
 
+        function analyzeQuestionCategory(questionText) {
+            // Keyword-based analysis to categorize questions
+            const keywords = {
+                '基本理論': ['確率', '統計', '期待値', '分布', '遷移', '待ち行列', 'M/M/1', '平均', '数学'],
+                'アルゴリズム': ['ソート', '探索', '探査', 'アルゴリズム', '計算量', 'O(', '二分', 'グラフ', '動的計画'],
+                'プログラミング': ['ポインタ', 'メモリ', 'バッファ', 'スタック', 'ヒープ', 'ガベージ', 'オブジェクト', 'クラス', '継承'],
+                'コンピュータシステム': ['キャッシュ', 'CPU', 'メモリ', 'レジスタ', 'パイプライン', '命令', 'SIMD', '浮動小数点', 'キャリー'],
+                'ネットワーク': ['TCP', 'UDP', 'IP', 'ルータ', 'パケット', 'スイッチ', 'DNS', 'HTTP', 'セッション', 'プロトコル', '回線'],
+                'データベース': ['SQL', 'テーブル', 'スキーマ', '正規化', 'ACID', 'トランザクション', 'インデックス', 'JOIN', '第3正規形'],
+                'セキュリティ': ['暗号', 'SSL', 'TLS', 'ハッシュ', '署名', '認証', '復号', '改ざん', 'マルウェア', '脆弱性'],
+                '情報システム': ['要件定義', 'テスト', '保守', 'UML', 'デザインパターン', 'リファクタリング', 'レビュー', '品質管理'],
+                'ストラテジ': ['経営', 'マーケティング', 'ビジネス', 'コスト', 'リスク', 'KPI', 'ROI', 'SWOT', '意思決定']
+            };
+            
+            let categoryScores = {};
+            Object.keys(keywords).forEach(cat => {
+                categoryScores[cat] = 0;
+            });
+            
+            const lowerText = questionText.toLowerCase();
+            Object.entries(keywords).forEach(([category, kws]) => {
+                kws.forEach(kw => {
+                    if (lowerText.includes(kw.toLowerCase())) {
+                        categoryScores[category]++;
+                    }
+                });
+            });
+            
+            // Return highest scoring category, default to '基本理論'
+            let maxScore = 0;
+            let maxCategory = '基本理論';
+            Object.entries(categoryScores).forEach(([cat, score]) => {
+                if (score > maxScore) {
+                    maxScore = score;
+                    maxCategory = cat;
+                }
+            });
+            
+            return maxCategory;
+        }
+
         async function startQuiz(config) {
             // Stop any existing timer before resetting quiz state
             if (state.quiz && state.quiz.timerInterval) {
@@ -1079,12 +1120,51 @@
                     }
                 }
             } else if (config.mode === 'category') {
-                if (!questions || questions.length === 0) {
-                    try {
-                        const res = await fetch('./category_questions.json');
-                        const data = await res.json();
-                        questions = Array.isArray(data) ? data : Array.isArray(data?.questions) ? data.questions : [];
-                    } catch (_) { questions = []; }
+                // Always reload kakomon questions for category mode (don't use pre-loaded category_questions.json)
+                try {
+                    // Load both kakomon S and A questions
+                    const resS = await fetch('./kakomon_questionsS.json');
+                    const dataS = await resS.json();
+                    const questionsS = [];
+                    if (dataS?.exam_data) {
+                        dataS.exam_data.forEach(exam => {
+                            if (exam.questions) {
+                                exam.questions.forEach(q => {
+                                    questionsS.push({
+                                        ...q,
+                                        exam_type: '科目A修了認定試験',
+                                        exam_year: exam.year
+                                    });
+                                });
+                            }
+                        });
+                    }
+                    
+                    const resA = await fetch('./kakomon_questionsA.json');
+                    const dataA = await resA.json();
+                    const questionsA = [];
+                    if (dataA?.exam_data) {
+                        dataA.exam_data.forEach(exam => {
+                            if (exam.questions) {
+                                exam.questions.forEach(q => {
+                                    questionsA.push({
+                                        ...q,
+                                        exam_type: '科目A試験',
+                                        exam_year: exam.year
+                                    });
+                                });
+                            }
+                        });
+                    }
+                    
+                    // Combine and analyze category for each question
+                    questions = [...questionsS, ...questionsA].map(q => ({
+                        ...q,
+                        category: analyzeQuestionCategory(q.question)
+                    }));
+                } catch (e) { 
+                    console.error('Failed to load kakomon questions:', e);
+                    questions = []; 
                 }
                 selectedQuestions = (questions || []).filter(q => config.categories.includes(q.category)).sort(() => 0.5 - Math.random());
                  if (selectedQuestions.length > 15) {
@@ -1133,18 +1213,17 @@
             };
             
             navigateTo('quiz-view');
-            // Show/hide left-side question navigation only for simulation mode
+            // Show/hide left-side question navigation
             try {
                 const navEl = document.getElementById('question-nav');
                 if (navEl) {
-                    if (state.quiz.mode === 'simulation' || state.quiz.mode === 'quick') {
+                    if (state.quiz.mode === 'simulation' || state.quiz.mode === 'quick' || state.quiz.mode === 'category') {
                         navEl.classList.remove('hidden');
                         const count = state.quiz.questions ? state.quiz.questions.length : 0;
                         if (typeof populateQuestionNav === 'function' && count > 0) {
                             populateQuestionNav(count);
                         }
                     } else {
-                        // hide nav for Quick Quiz and Category Practice
                         navEl.classList.add('hidden');
                     }
                 }
@@ -1223,8 +1302,12 @@
             }
             
             const progressInfoEl = document.getElementById('progress-info');
-            progressInfoEl.style.display = (quiz.mode === 'category') ? 'none' : 'block';
-            progressInfoEl.textContent = `問題 ${quiz.currentIndex + 1} / ${quiz.questions.length}`;
+            progressInfoEl.style.display = 'block';
+            let progressText = `問題 ${quiz.currentIndex + 1} / ${quiz.questions.length}`;
+            if (quiz.mode === 'category' && q.category) {
+                progressText += ` | 📚 ${q.category}`;
+            }
+            progressInfoEl.textContent = progressText;
 
             const optionsContainer = document.getElementById('options-container');
             optionsContainer.innerHTML = '';
@@ -1233,8 +1316,8 @@
             const nextBtn = document.getElementById('next-btn');
             nextBtn.textContent = (quiz.currentIndex === quiz.questions.length - 1 && quiz.mode !== 'category') ? '結果を見る' : '次へ →';
 
-            // Update left nav active state if present
-            if ((quiz.mode === 'simulation' || quiz.mode === 'quick') && typeof highlightNavButton === 'function') {
+            // Update left nav active state if present (for all quiz modes with nav)
+            if ((quiz.mode === 'simulation' || quiz.mode === 'quick' || quiz.mode === 'category') && typeof highlightNavButton === 'function') {
                 highlightNavButton(quiz.currentIndex);
             }
 
@@ -1296,8 +1379,12 @@
         function selectAnswer(selected, buttonEl) {
             const quiz = state.quiz;
             const q = quiz.questions[quiz.currentIndex];
-            // The correct answer could be the full text (old) or a key (new)
-            const correctAnswer = q.answer; 
+            // Ambil kunci jawaban yang benar untuk category mode kakomon
+            let correctAnswer = q.answer;
+            if (quiz.mode === 'category' && quiz.categoryAnswersByQId && q.is_past) {
+                // Untuk soal kakomon di category mode, ambil dari answer key
+                correctAnswer = quiz.categoryAnswersByQId[quiz.currentIndex] || q.answer;
+            }
 
             if(quiz.mode === 'simulation') {
                 Array.from(document.querySelectorAll('.option-btn')).forEach(btn => btn.classList.remove('selected'));
@@ -1306,7 +1393,6 @@
                     question: q.question,
                     choice: selected,                    
                     explanation: q.explanation,
-                    
                 };
                 // mark left nav button as answered (only for simulation mode)
                 try { if (quiz.mode === 'simulation') markNavAnswered(quiz.currentIndex); } catch(e) { console.warn('markNavAnswered failed', e); }
@@ -1340,8 +1426,8 @@
                     explanation: q.explanation,
                     isCorrect: isCorrect
                 };
-                // mark left nav as answered only for simulation mode
-                try { if (quiz.mode === 'simulation') markNavAnswered(quiz.currentIndex); } catch(e) { console.warn('markNavAnswered failed', e); }
+                // mark left nav as answered for simulation and category modes
+                try { if (quiz.mode === 'simulation' || quiz.mode === 'category') markNavAnswered(quiz.currentIndex); } catch(e) { console.warn('markNavAnswered failed', e); }
             }
         }
         
@@ -1499,51 +1585,83 @@
             const container = document.getElementById('review-container');
             container.innerHTML = '';
             // PDF simulation mode: show per-question your answer vs correct answer from kakomon_answers.json
-            if (state.quiz.mode === 'simulation') {
+            if (state.quiz.mode === 'simulation' || state.quiz.mode === 'category') {
                     async function ensureAnswerKeyForReview(){
                     if (state.quiz.answerKey) return;
-                    try {
-                        const res = await fetch('./kakomon_answers.json');
-                        const all = await res.json();
-                        const yearKey = String(state.quiz.year);
-                        if (state.quiz.subMode === 'final') {
-                            // 修了試験 answers: prefer YYYYMM, fallback to YYYY
-                            const y4 = yearKey.slice(0,4);
-                            state.quiz.answerKey = all?.['科目A修了認定試験']?.[yearKey] 
-                                || all?.['科目A修了認定試験']?.[y4] 
-                                || null;
-                        } else {
-                            // 科目A試験 answers
-                            // Try exact key (YYYYMM) first, then fallback to YYYY only
-                            let key = yearKey;
-                            let ans = all?.['科目A試験']?.[key] || null;
-                            if (!ans && yearKey.length === 6) {
-                                key = yearKey.slice(0,4);
-                                ans = all?.['科目A試験']?.[key] || null;
+                    if (state.quiz.mode === 'category') {
+                        // For category mode with past questions, load answers if needed
+                        try {
+                            const res = await fetch('./kakomon_answers.json');
+                            const all = await res.json();
+                            
+                            // Build answers for past questions
+                            const answersByQId = {};
+                            state.quiz.questions.forEach((q, idx) => {
+                                if (q.is_past && q.original_q) {
+                                    const examType = q.exam_type === '科目A試験' ? '科目A試験' : '科目A修了認定試験';
+                                    const yearKey = String(q.exam_year);
+                                    const qId = q.original_q.id;
+                                    
+                                    let answers = null;
+                                    if (examType === '科目A試験') {
+                                        answers = all?.[examType]?.[yearKey];
+                                    } else {
+                                        answers = all?.[examType]?.[yearKey] || all?.[examType]?.[yearKey.slice(0,4)];
+                                    }
+                                    
+                                    if (answers) {
+                                        answersByQId[idx] = answers[String(qId)];
+                                    }
+                                }
+                            });
+                            state.quiz.categoryAnswersByQId = answersByQId;
+                        } catch(e) { console.error('Failed to load answer key for category review:', e); }
+                    } else {
+                        try {
+                            const res = await fetch('./kakomon_answers.json');
+                            const all = await res.json();
+                            const yearKey = String(state.quiz.year);
+                            if (state.quiz.subMode === 'final') {
+                                const y4 = yearKey.slice(0,4);
+                                state.quiz.answerKey = all?.['科目A修了認定試験']?.[yearKey] 
+                                    || all?.['科目A修了認定試験']?.[y4] 
+                                    || null;
+                            } else {
+                                let key = yearKey;
+                                let ans = all?.['科目A試験']?.[key] || null;
+                                if (!ans && yearKey.length === 6) {
+                                    key = yearKey.slice(0,4);
+                                    ans = all?.['科目A試験']?.[key] || null;
+                                }
+                                state.quiz.answerKey = ans;
                             }
-                            state.quiz.answerKey = ans;
-                        }
-                    } catch(e){ console.error('Failed to load answer key in review:', e); }
+                        } catch(e){ console.error('Failed to load answer key in review:', e); }
+                    }
                 }
                 // Render after ensuring key
                 (async () => {
                     await ensureAnswerKeyForReview();
                     const header = document.createElement('div');
                     header.className = 'mb-4';
-                    // If year stored as YYYYMM (final mode), format as 'YYYY年M月'
-                    let reviewTitleYear = state.quiz.year;
-                    if (String(state.quiz.year).length === 6) {
-                        const y = String(state.quiz.year).slice(0,4);
-                        const m = String(state.quiz.year).slice(4).replace(/^0/, '');
-                        reviewTitleYear = `${y}年${m}月`;
+                    
+                    if (state.quiz.mode === 'category') {
+                        header.innerHTML = `<h3 class="kid-title text-xl font-bold">カテゴリ別練習 解答レビュー</h3>`;
                     } else {
-                        reviewTitleYear = `${state.quiz.year}年`;
+                        // If year stored as YYYYMM (final mode), format as 'YYYY年M月'
+                        let reviewTitleYear = state.quiz.year;
+                        if (String(state.quiz.year).length === 6) {
+                            const y = String(state.quiz.year).slice(0,4);
+                            const m = String(state.quiz.year).slice(4).replace(/^0/, '');
+                            reviewTitleYear = `${y}年${m}月`;
+                        } else {
+                            reviewTitleYear = `${state.quiz.year}年`;
+                        }
+                        const examLabel = state.quiz.subMode === 'final' ? '科目A修了認定試験' : (state.quiz.subMode === 'kamokuB' ? '科目B試験' : '科目A試験');
+                        header.innerHTML = `<h3 class="kid-title text-xl font-bold">解答レビュー（${reviewTitleYear} ${examLabel}）</h3>`;
                     }
-                    const examLabel = state.quiz.subMode === 'final' ? '科目A修了認定試験' : (state.quiz.subMode === 'kamokuB' ? '科目B試験' : '科目A試験');
-                    header.innerHTML = `<h3 class="kid-title text-xl font-bold">解答レビュー（${reviewTitleYear} ${examLabel}）</h3>`;
                     container.appendChild(header);
 
-                    if (!state.quiz.answerKey) {
+                    if (!state.quiz.answerKey && state.quiz.mode !== 'category') {
                         const warn = document.createElement('div');
                         warn.className = 'mb-3 p-3 rounded-lg bg-yellow-50 text-yellow-800 border border-yellow-200 text-sm';
                         warn.innerHTML = `解答キーを読み込めませんでした。HTTPサーバーで開いてください。<br>
@@ -1555,8 +1673,24 @@
                     const total = state.quiz.questions.length;
                     for (let i = 0; i < total; i++) {
                         const qno = i + 1;
-                        const your = state.quiz.userAnswers[i]?.choice || '—';
-                        const correct = state.quiz.answerKey ? (state.quiz.answerKey[String(qno)] || '—') : '—';
+                        // For category mode: use 'selected', for simulation mode: use 'choice'
+                        const your = state.quiz.mode === 'category' 
+                            ? (state.quiz.userAnswers[i]?.selected || '—')
+                            : (state.quiz.userAnswers[i]?.choice || '—');
+                        let correct = '—';
+                        
+                        if (state.quiz.mode === 'category') {
+                            // For category mode
+                            if (state.quiz.questions[i].is_past) {
+                                correct = state.quiz.categoryAnswersByQId?.[i] || '—';
+                            } else {
+                                correct = state.quiz.questions[i].answer || '—';
+                            }
+                        } else {
+                            // For simulation mode
+                            correct = state.quiz.answerKey ? (state.quiz.answerKey[String(qno)] || '—') : '—';
+                        }
+                        
                         const isCorrect = your !== '—' && correct !== '—' && your === correct;
                         const row = document.createElement('div');
                         row.className = `p-3 rounded-xl glass-card flex items-center justify-between mb-2 ${isCorrect ? 'border border-green-300' : 'border border-red-300'}`;
@@ -2249,8 +2383,56 @@
         function getAllCategories(){
             // Derive unique categories from available questions
             const set = new Set(questions.map(q => q.category));
-            return Array.from(set);
+            return Array.from(set).sort();
         }
+        
+        async function loadKakomonForCategoryView() {
+            // Pre-load kakomon questions when opening category view
+            try {
+                const resS = await fetch('./kakomon_questionsS.json');
+                const dataS = await resS.json();
+                const questionsS = [];
+                if (dataS?.exam_data) {
+                    dataS.exam_data.forEach(exam => {
+                        if (exam.questions) {
+                            exam.questions.forEach(q => {
+                                questionsS.push({
+                                    ...q,
+                                    exam_type: '科目A修了認定試験',
+                                    exam_year: exam.year
+                                });
+                            });
+                        }
+                    });
+                }
+                
+                const resA = await fetch('./kakomon_questionsA.json');
+                const dataA = await resA.json();
+                const questionsA = [];
+                if (dataA?.exam_data) {
+                    dataA.exam_data.forEach(exam => {
+                        if (exam.questions) {
+                            exam.questions.forEach(q => {
+                                questionsA.push({
+                                    ...q,
+                                    exam_type: '科目A試験',
+                                    exam_year: exam.year
+                                });
+                            });
+                        }
+                    });
+                }
+                
+                // Combine and analyze category for each question
+                questions = [...questionsS, ...questionsA].map(q => ({
+                    ...q,
+                    category: analyzeQuestionCategory(q.question)
+                }));
+            } catch (e) {
+                console.error('Failed to load kakomon for category view:', e);
+            }
+        }
+        
         function renderCategoryList(){
             const listEl = document.getElementById('category-list');
             const startBtn = document.getElementById('start-category-quiz-btn');
@@ -2278,7 +2460,13 @@
             // Reset selection each time you open
             selectedCategories = new Set();
             navigateTo('category-view');
-            renderCategoryList();
+            
+            // Load kakomon questions for category view (to get all 9 categories)
+            (async () => {
+                await loadKakomonForCategoryView();
+                renderCategoryList();
+            })();
+            
             const startBtn = document.getElementById('start-category-quiz-btn');
             if (startBtn) {
                 // Remove previous listener if any by cloning
