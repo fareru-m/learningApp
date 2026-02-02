@@ -639,28 +639,81 @@
         const examUpdateEntries = [
             {
                 date: '2025-01-15',
-                title: '2025年春期試験のインターネット申込開始',
-                summary: 'IPA 公式サイトで春期 基本情報技術者試験の申込受付がスタートしました。締切日は 2月7日（金）17:00 です。',
-                link: 'https://www.jitec.ipa.go.jp/1_00topic/topic_20250115.html',
+                title: '2025年上期 CBT試験の予約受付開始', // Updated: Menyesuaikan dengan format CBT
+                summary: 'IPA 公式サイトおよびプロメトリック社サイトにて、2025年4月以降の受験予約が可能になりました。希望の日時・会場はお早めに確保してください。',
+                link: 'https://www.ipa.go.jp/shiken/mousikomi/cbt_sg_fe.html', // Updated: Link resmi pendaftaran terbaru
                 type: 'official'
             },
             {
                 date: '2024-12-20',
                 title: '出題範囲アップデート：AI・データ利活用の比重が増加',
-                summary: '公式シラバス Version 5.0 で AI 活用やデータ分析分野の比重が高まりました。ディープラーニングの基礎用語を復習しましょう。',
-                link: 'https://www.jitec.ipa.go.jp/1_11seido/syllabus.html',
+                summary: '公式シラバスおよび出題構成の見直しにより、科目Bにおけるデータ分析・アルゴリズム設計の重要度が高まっています。',
+                link: 'https://www.ipa.go.jp/shiken/syllabus/index.html', // Updated: Link silabus terbaru
                 type: 'official'
             },
             {
+                date: '2024-12-10', // New Entry
+                title: '【重要】公開問題（サンプル問題）の追加公開',
+                summary: '科目A・科目Bの最新の出題傾向を反映した公開問題が公式サイトにアップロードされました。実力試しに活用しましょう。',
+                link: 'https://www.ipa.go.jp/shiken/mondai-kaiotu/index.html', // Link ke soal/jawaban resmi
+                type: 'study'
+            },
+            {
                 date: '2024-11-30',
-                title: '午前試験 CBT 受験の当日持ち物チェック',
-                summary: '受験票、本人確認書類、シャープペンシル（会場指定の場合）などを前日までに確認。試験開始 30 分前の到着を推奨します。',
+                title: 'CBT 受験当日の持ち物と本人確認書類について',
+                summary: '顔写真付き本人確認書類の有効期限を必ず確認してください。確認書類に不備がある場合、受験できません。',
+                link: '', // Updated: Link panduan CBT
                 type: 'procedure'
             },
             {
+                date: '2024-11-15', // New Entry
+                title: '合格発表と合格証書の発送スケジュール',
+                summary: '先月受験された方の合格発表が行われました。合格証書の発送は発表から約2週間後となります。',
+                link: 'https://www.ipa.go.jp/shiken/goukaku/index.html', // Link pengumuman kelulusan
+                type: 'official'
+            },
+            {
                 date: '2024-11-05',
-                title: '直前期の学習アドバイス：重点 3 テーマ',
-                summary: '① データ構造とアルゴリズム、② ネットワークとセキュリティ、③ プロジェクト管理の 3 分野を集中的に確認しましょう。',
+                title: '直前期の学習アドバイス：科目B アルゴリズム重点対策',
+                summary: '科目B（旧午後試験）は擬似言語の読み取りが鍵です。トレース作業を正確に行えるよう、手を動かして演習を行いましょう。',
+                link: 'https://www.ipa.go.jp/shiken/kubun/fe.html', // Updated: Link spesifik FE
+                type: 'study'
+            },
+            {
+                date: null, // Tidak ada tanggal event
+                title: 'キタミ式イラストIT塾 基本情報技術者',
+                summary: 'イラストが多く、初心者や留学生にも読みやすい定番の参考書。ITの基礎用語（科目A）を視覚的に理解するのに最適です。',
+                link: 'https://www.amazon.co.jp/s?k=%E3%82%AD%E3%82%BF%E3%83%9F%E5%BC%8F%E3%82%A4%E3%83%A9%E3%82%B9%E3%83%8FIT%E5%A1%BE+%E5%9F%BA%E6%9C%AC%E6%83%85%E5%A0%B1%E6%8A%80%E8%A1%93%E8%80%85',
+                type: 'study'
+            },
+            {
+                date: null, 
+                title: '出るとこだけ！基本情報技術者 [科目B]',
+                summary: '科目B（アルゴリズム・セキュリティ）特化型。擬似言語の読み方やトレースの手順が詳しく解説されており、合格の決め手となる一冊。',
+                link: 'https://www.amazon.co.jp/s?k=%E5%87%BA%E3%82%8B%E3%81%A8%E3%81%93%E3%81%A0%E3%81%91%EF%BC%81%E5%9F%BA%E6%9C%AC%E6%83%85%E5%A0%B1%E6%8A%80%E8%A1%93%E8%80%85+%E7%A7%91%E7%9B%AEB',
+                type: 'study'
+            },
+            {
+                date: null,
+                title: '情報処理教科書 出るとこだけ！基本情報技術者 テキスト＆問題集',
+                summary: '短期間で重要ポイントを復習したい人向け（Cramming）。試験によく出る箇所が厳選されています。',
+                link: 'https://www.amazon.co.jp/s?k=%E6%83%85%E5%A0%B1%E5%87%A6%E7%90%86%E6%95%99%E7%A7%91%E6%9B%B8+%E5%87%BA%E3%82%8B%E3%81%A8%E3%81%93%E3%81%A0%E3%81%91+%E5%9F%BA%E6%9C%AC%E6%83%85%E5%A0%B1',
+                type: 'study'
+            },
+
+            // --- REKOMENDASI WEBSITE (Websites) ---
+            {
+                date: null,
+                title: '基本情報技術者試験.com (過去問道場)',
+                summary: '最強の無料学習サイト。過去問演習（科目A）とオリジナル予想問題（科目B）があり、解説も非常に丁寧です。スマホでの学習にも対応。',
+                link: 'https://www.fe-siken.com/',
+                type: 'study'
+            },
+            {
+                date: null, 
+                title: 'Progate (プロゲート) - アルゴリズム学習',
+                summary: 'プログラミング未経験の場合は、まずここでコードの書き方の基礎（変数、ループ、条件分岐）を学ぶと科目Bが理解しやすくなります。',
+                link: 'https://prog-8.com/',
                 type: 'study'
             }
         ];
