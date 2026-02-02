@@ -45,6 +45,7 @@
         .option-btn.correct { background-color: #22c55e; color: white; border-color: #16a34a; }
         .option-btn.incorrect { background-color: #ef4444; color: white; border-color: #dc2626; }
         .option-btn.selected { background-color: #3b82f6; color: white; }
+        .option-btn.user-selected { background-color: #1e40af; color: white; border-color: #1e3a8a; }
         .option-btn:disabled { cursor: not-allowed; opacity: 0.8; }
         .chart-container {
             position: relative;
@@ -356,12 +357,13 @@
                     </div>
                     <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
                     <div class="mt-8 flex justify-between items-center">
-                        <button id="end-btn" onclick="if(window.confirm('試験を終了します。ダッシュボードに戻ってもよろしいですか？')){ navigateTo('dashboard-view'); }" class="bg-gray-200 text-gray-800 font-bold py-2 px-5 rounded-lg hover:bg-gray-300 transition-colors">終了</button>
-                        <p id="feedback" class="h-6 text-lg font-medium text-center flex-grow"></p>
-                        <div class="flex items-center gap-3">
-                            <button id="grade-btn" class="bg-green-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-green-700 transition-colors">採点</button>
+                        <button id="end-btn" onclick="if(window.confirm('試験を終了します。ダッシュボードに戻ってもよろしいですか？')){ navigateTo('dashboard-view'); }" class="bg-gray-200 text-gray-800 font-bold py-2 px-5 rounded-lg hover:bg-gray-300 transition-colors">修了</button>
+                        <p id="feedback" class="h-6 text-lg font-medium text-center flex-shrink-0 mx-4"></p>
+                        <div class="flex items-center gap-3 flex-grow justify-center">
+                            <button id="prev-btn" class="bg-blue-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors">←前へ</button>
                             <button id="next-btn" class="bg-blue-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors">次へ &rarr;</button>
                         </div>
+                        <button id="grade-btn" class="bg-green-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-green-700 transition-colors">採点</button>
                     </div>
                 </main>
             </div>
@@ -393,7 +395,7 @@
                     <div id="review-container" class="space-y-4 max-h-96 overflow-y-auto pr-2"></div>
                 </div>
                 <div class="mt-8 text-center">
-                    <button onclick="navigateTo('dashboard-view')" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 transition-colors shadow-md">完了</button>
+                    <button onclick="navigateTo('dashboard-view')" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 transition-colors shadow-md">修了</button>
                 </div>
             </main>
         </div>
@@ -989,14 +991,20 @@
             let pdfTotal = null;
             
             if (config.mode === 'quick') {
-                if (!questions || questions.length === 0) {
-                    try {
-                        const res = await fetch('./category_questions.json');
-                        const data = await res.json();
-                        questions = normalizeCategoryData(data);
-                    } catch (_) { questions = []; }
+                // Always load fresh data from questions.json for quick mode
+                try {
+                    const res = await fetch('./questions.json');
+                    const data = await res.json();
+                    selectedQuestions = data.slice().sort(() => 0.5 - Math.random()).slice(0, 10);
+                    console.log('Quick mode - Loaded questions from questions.json:', selectedQuestions.length);
+                    console.log('Sample questions:', selectedQuestions.slice(0, 2).map(q => ({
+                        question: q.question.substring(0, 50) + '...',
+                        answer: q.answer
+                    })));
+                } catch (error) {
+                    console.error('Failed to load questions.json:', error);
+                    selectedQuestions = [];
                 }
-                selectedQuestions = (questions || []).slice().sort(() => 0.5 - Math.random()).slice(0, 10);
                 modeTitle = "🚀 クイッククイズ";
             } else if (config.mode === 'simulation') {
                 const sub = config.subMode || 'regular';
@@ -1162,6 +1170,14 @@
                         ...q,
                         category: analyzeQuestionCategory(q.question)
                     }));
+                    
+                    console.log('Category mode - Total questions loaded:', questions.length);
+                    console.log('Sample questions with metadata:', questions.slice(0, 3).map(q => ({
+                        id: q.id,
+                        category: q.category,
+                        exam_type: q.exam_type,
+                        exam_year: q.exam_year
+                    })));
                 } catch (e) { 
                     console.error('Failed to load kakomon questions:', e);
                     questions = []; 
@@ -1170,6 +1186,9 @@
                  if (selectedQuestions.length > 15) {
                     selectedQuestions = selectedQuestions.slice(0, 15);
                 }
+                
+                console.log('Category mode - Selected questions:', selectedQuestions.length);
+                console.log('Selected categories:', config.categories);
                 modeTitle = "📚 カテゴリ別練習";
             }
 
@@ -1195,6 +1214,67 @@
                 timerInterval: null
             };
             
+            // Load answer key for quick and category modes
+            if (config.mode === 'quick' || config.mode === 'category') {
+                try {
+                    // For quick mode, build answer key from questions.json
+                    if (config.mode === 'quick') {
+                        const answerKey = {};
+                        selectedQuestions.forEach((q, idx) => {
+                            if (q.answer) {
+                                answerKey[String(idx + 1)] = q.answer;
+                            }
+                        });
+                        state.quiz.answerKey = answerKey;
+                        console.log('Quick mode answer key:', answerKey);
+                    } else if (config.mode === 'category') {
+                        // For category mode, build answer key from kakomon_answers.json
+                        const answerKey = {};
+                        
+                        // Load kakomon answers
+                        const res = await fetch('./kakomon_answers.json');
+                        const allAnswers = await res.json();
+                        console.log('Kakomon answers loaded for category mode');
+                        
+                        selectedQuestions.forEach((q, idx) => {
+                            if (q.exam_year && q.id) {
+                                const examType = q.exam_type || '科目A試験';
+                                const yearKey = String(q.exam_year);
+                                const questionId = String(q.id);
+                                
+                                console.log(`Processing question ${idx + 1}: ID=${questionId}, Type=${examType}, Year=${yearKey}`);
+                                
+                                let answers = null;
+                                if (examType === '科目A試験') {
+                                    answers = allAnswers?.[examType]?.[yearKey];
+                                } else if (examType === '科目A修了認定試験') {
+                                    // For S exams, try YYYYMM first, then fallback to YYYY
+                                    answers = allAnswers?.[examType]?.[yearKey] || allAnswers?.[examType]?.[yearKey.slice(0,4)];
+                                }
+                                
+                                console.log(`Available answers for ${examType} ${yearKey}:`, answers ? Object.keys(answers).slice(0, 3) : 'None');
+                                
+                                if (answers && answers[questionId]) {
+                                    answerKey[String(idx + 1)] = answers[questionId];
+                                    console.log(`✓ Found answer for question ${idx + 1}: ${answers[questionId]}`);
+                                } else {
+                                    console.log(`✗ No answer found for question ${idx + 1}`);
+                                }
+                            } else {
+                                console.log(`✗ Question ${idx + 1} missing metadata:`, {exam_year: q.exam_year, id: q.id});
+                            }
+                        });
+                        
+                        state.quiz.answerKey = Object.keys(answerKey).length > 0 ? answerKey : null;
+                        console.log('Category mode answer key:', state.quiz.answerKey);
+                        console.log('Total questions:', selectedQuestions.length, 'Answer keys found:', Object.keys(answerKey).length);
+                    }
+                } catch (error) {
+                    console.error('Failed to load answer key:', error);
+                    state.quiz.answerKey = null;
+                }
+            }
+            
             document.getElementById('quiz-mode-title').textContent = modeTitle;
 
             if (timeLimit > 0) {
@@ -1205,10 +1285,54 @@
             }
             
             document.getElementById('next-btn').onclick = () => handleNextQuestion();
+            document.getElementById('prev-btn').onclick = () => handlePrevQuestion();
             const gradeBtn = document.getElementById('grade-btn');
             if (gradeBtn) gradeBtn.onclick = () => {
-                const ok = window.confirm('採点を実行します。結果画面に移動してもよろしいですか？\n（未回答の問題は不正解として扱われます）');
-                if (!ok) return;
+                // Use pre-loaded answer key for quick and category modes
+                if (state.quiz.mode === 'quick' || state.quiz.mode === 'category') {
+                    console.log('Grade button clicked - mode:', state.quiz.mode);
+                    console.log('Answer key available:', !!state.quiz.answerKey);
+                    console.log('Answer key:', state.quiz.answerKey);
+                    console.log('User answers:', state.quiz.userAnswers);
+                    
+                    if (!state.quiz.answerKey) {
+                        alert('Kunci jawaban tidak tersedia. Silakan coba lagi.');
+                        return;
+                    }
+                    
+                    // Calculate score using pre-loaded answer key
+                    const total = state.quiz.questions.length;
+                    let correct = 0;
+                    
+                    for (let i = 0; i < total; i++) {
+                        const qno = i + 1;
+                        // Use 'selected' for category and quick modes, 'choice' for simulation mode
+                        const userAnswer = (state.quiz.mode === 'category' || state.quiz.mode === 'quick') 
+                            ? state.quiz.userAnswers[i]?.selected
+                            : state.quiz.userAnswers[i]?.choice;
+                        const correctAnswer = state.quiz.answerKey[String(qno)];
+                        
+                        console.log(`Question ${qno}: User="${userAnswer}", Correct="${correctAnswer}"`);
+                        
+                        const isRight = !!(userAnswer && correctAnswer && userAnswer.trim() === correctAnswer.trim());
+                        if (isRight) correct++;
+                        
+                        // Store result for review
+                        if (!state.quiz.userAnswers[i]) state.quiz.userAnswers[i] = {};
+                        state.quiz.userAnswers[i].correct = correctAnswer || null;
+                        state.quiz.userAnswers[i].isCorrect = isRight;
+                    }
+                    
+                    state.quiz.score = correct;
+                    console.log(`Final score: ${correct}/${total}`);
+                    
+                    const ok = window.confirm(`採点を実行します。結果画面に移動してもよろしいですか？\n正解数: ${correct}/${total}問\n（未回答の問題は不正解として扱われます）`);
+                    if (!ok) return;
+                } else {
+                    // For simulation mode, use existing logic
+                    const ok = window.confirm('採点を実行します。結果画面に移動してもよろしいですか？\n（未回答の問題は不正解として扱われます）');
+                    if (!ok) return;
+                }
                 showResults();
             };
             
@@ -1314,7 +1438,41 @@
             document.getElementById('feedback').textContent = '';
             
             const nextBtn = document.getElementById('next-btn');
-            nextBtn.textContent = (quiz.currentIndex === quiz.questions.length - 1 && quiz.mode !== 'category') ? '結果を見る' : '次へ →';
+            const prevBtn = document.getElementById('prev-btn');
+            
+            // Check if this is the last question (except for category mode which loops)
+            const isLastQuestion = quiz.currentIndex === quiz.questions.length - 1 && quiz.mode !== 'category';
+            const isFirstQuestion = quiz.currentIndex === 0 && quiz.mode !== 'category';
+            
+            // Handle next button state
+            if (isLastQuestion) {
+                // Disable and gray out the next button on last question
+                nextBtn.textContent = '次へ →';
+                nextBtn.disabled = true;
+                nextBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                nextBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+            } else {
+                // Normal button state
+                nextBtn.textContent = '次へ →';
+                nextBtn.disabled = false;
+                nextBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                nextBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            }
+            
+            // Handle prev button state
+            if (isFirstQuestion) {
+                // Disable and gray out the prev button on first question
+                prevBtn.textContent = '←前へ';
+                prevBtn.disabled = true;
+                prevBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                prevBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+            } else {
+                // Normal button state
+                prevBtn.textContent = '←前へ';
+                prevBtn.disabled = false;
+                prevBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                prevBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            }
 
             // Update left nav active state if present (for all quiz modes with nav)
             if ((quiz.mode === 'simulation' || quiz.mode === 'quick' || quiz.mode === 'category') && typeof highlightNavButton === 'function') {
@@ -1363,7 +1521,7 @@
                     button.onclick = () => selectAnswer(key, button);
                     optionsContainer.appendChild(button);
                 });
-                // Re-select previously chosen answer in simulation mode
+                // Re-select previously chosen answer
                 const saved = state.quiz.userAnswers[state.quiz.currentIndex]?.choice;
                 if (saved) {
                     Array.from(optionsContainer.querySelectorAll('.option-btn')).forEach(btn => {
@@ -1372,6 +1530,45 @@
                         const keyMatch = text.split('.')[0];
                         if (keyMatch === saved) btn.classList.add('selected');
                     });
+                }
+                
+                // For category mode: also check for 'selected' field
+                if (quiz.mode === 'category') {
+                    const savedCategory = state.quiz.userAnswers[state.quiz.currentIndex]?.selected;
+                    if (savedCategory) {
+                        Array.from(optionsContainer.querySelectorAll('.option-btn')).forEach(btn => {
+                            const text = btn.textContent.trim();
+                            const keyMatch = text.split('.')[0];
+                            if (keyMatch === savedCategory) {
+                                btn.classList.add('user-selected');
+                            }
+                        });
+                    }
+                }
+                
+                // For quick mode: also check for 'selected' field and show results
+                if (quiz.mode === 'quick') {
+                    const savedQuick = state.quiz.userAnswers[state.quiz.currentIndex];
+                    if (savedQuick && savedQuick.selected) {
+                        Array.from(optionsContainer.querySelectorAll('.option-btn')).forEach(btn => {
+                            const text = btn.textContent.trim();
+                            const keyMatch = text.split('.')[0];
+                            
+                            if (keyMatch === savedQuick.selected) {
+                                // Highlight user selection based on correctness
+                                if (savedQuick.isCorrect) {
+                                    btn.classList.add('correct');
+                                } else {
+                                    btn.classList.add('incorrect');
+                                }
+                            }
+                            
+                            // Always show correct answer
+                            if (keyMatch === savedQuick.correct) {
+                                btn.classList.add('correct');
+                            }
+                        });
+                    }
                 }
             }
         }
@@ -1397,37 +1594,227 @@
                 // mark left nav button as answered (only for simulation mode)
                 try { if (quiz.mode === 'simulation') markNavAnswered(quiz.currentIndex); } catch(e) { console.warn('markNavAnswered failed', e); }
             } else { 
-                Array.from(document.querySelectorAll('.option-btn')).forEach(btn => {
-                    btn.disabled = true;
-                    // Check if button's key or text matches the answer
-                    const btnIdentifier = btn.dataset.optionKey || btn.textContent;
-                    if(btnIdentifier === correctAnswer) {
-                        btn.classList.add('correct');
-                    }
-                });
-                
-                const isCorrect = selected === correctAnswer;
-                const feedbackEl = document.getElementById('feedback');
+                // Special handling for category mode
+                if (quiz.mode === 'category') {
+                    // Remove previous user selection
+                    Array.from(document.querySelectorAll('.option-btn')).forEach(btn => {
+                        btn.classList.remove('user-selected');
+                    });
+                    
+                    // Don't disable buttons for category mode
+                    Array.from(document.querySelectorAll('.option-btn')).forEach(btn => {
+                        const btnIdentifier = btn.dataset.optionKey || btn.textContent;
+                        if(btnIdentifier === correctAnswer) {
+                            btn.classList.add('correct');
+                        }
+                    });
+                    
+                    const isCorrect = selected === correctAnswer;
+                    const feedbackEl = document.getElementById('feedback');
 
-                if(isCorrect){
-                    if (quiz.mode !== 'category') state.quiz.score++;
-                    buttonEl.classList.add('correct');
-                    feedbackEl.textContent = "正解！";
-                    feedbackEl.className = 'h-6 text-lg font-medium text-center flex-grow text-green-500';
+                    // Highlight user selection in blue
+                    buttonEl.classList.add('user-selected');
+
+                    if(isCorrect){
+                        buttonEl.classList.add('correct');
+                    } else {
+                        // No feedback for category mode
+                    }
+                    
+                    // Store user answer for category mode
+                    state.quiz.userAnswers[state.quiz.currentIndex] = {
+                        question: q.question,
+                        selected: selected,
+                        correct: correctAnswer,
+                        explanation: q.explanation,
+                        isCorrect: isCorrect
+                    };
+                    
+                    console.log(`Category mode - Stored answer for question ${quiz.currentIndex}:`, {
+                        selected: selected,
+                        correct: correctAnswer,
+                        isCorrect: isCorrect,
+                        userAnswers: state.quiz.userAnswers[quiz.currentIndex]
+                    });
                 } else {
-                    buttonEl.classList.add('incorrect');
-                    feedbackEl.textContent = "不正解！";
-                    feedbackEl.className = 'h-6 text-lg font-medium text-center flex-grow text-red-500';
+                    // For other modes: special handling for quick vs others
+                    if (quiz.mode === 'quick') {
+                        // Quick mode: disable buttons and show immediate feedback
+                        Array.from(document.querySelectorAll('.option-btn')).forEach(btn => {
+                            btn.disabled = true;
+                            const btnIdentifier = btn.dataset.optionKey || btn.textContent;
+                            if(btnIdentifier === correctAnswer) {
+                                btn.classList.add('correct');
+                            }
+                        });
+                        
+                        const isCorrect = selected === correctAnswer;
+                        const feedbackEl = document.getElementById('feedback');
+
+                        if(isCorrect){
+                            // Correct answer: highlight user selection in green
+                            buttonEl.classList.add('correct');
+                            state.quiz.score++;
+                            showFeedbackPopup("正解！", true);
+                        } else {
+                            // Wrong answer: highlight user selection in red, correct answer in green
+                            buttonEl.classList.add('incorrect');
+                            showFeedbackPopup("不正解！", false);
+                        }
+                        
+                        // Store user answer for quick mode
+                        state.quiz.userAnswers[state.quiz.currentIndex] = {
+                            question: q.question,
+                            selected: selected,
+                            correct: correctAnswer,
+                            explanation: q.explanation,
+                            isCorrect: isCorrect
+                        };
+                        
+                        console.log(`Quick mode - Stored answer for question ${quiz.currentIndex}:`, {
+                            selected: selected,
+                            correct: correctAnswer,
+                            isCorrect: isCorrect
+                        });
+                    } else {
+                        // For simulation mode: allow changing answers like category mode
+                        // Remove previous user selection
+                        Array.from(document.querySelectorAll('.option-btn')).forEach(btn => {
+                            btn.classList.remove('selected');
+                        });
+                        
+                        // Don't disable buttons for simulation mode
+                        Array.from(document.querySelectorAll('.option-btn')).forEach(btn => {
+                            // Check if button's key or text matches the answer
+                            const btnIdentifier = btn.dataset.optionKey || btn.textContent;
+                            if(btnIdentifier === correctAnswer) {
+                                btn.classList.add('correct');
+                            }
+                        });
+                        
+                        const isCorrect = selected === correctAnswer;
+                        const feedbackEl = document.getElementById('feedback');
+
+                        // Highlight user selection in blue
+                        buttonEl.classList.add('selected');
+
+                        if(isCorrect){
+                            if (quiz.mode !== 'category') state.quiz.score++;
+                            buttonEl.classList.add('correct');
+                            // No feedback for simulation mode
+                        } else {
+                            buttonEl.classList.add('incorrect');
+                            // No feedback for simulation mode
+                        }
+                    }
                 }
-                state.quiz.userAnswers[state.quiz.currentIndex] = {
-                    question: q.question,
-                    selected: selected,
-                    correct: correctAnswer,
-                    explanation: q.explanation,
-                    isCorrect: isCorrect
-                };
-                // mark left nav as answered for simulation and category modes
-                try { if (quiz.mode === 'simulation' || quiz.mode === 'category') markNavAnswered(quiz.currentIndex); } catch(e) { console.warn('markNavAnswered failed', e); }
+                
+                // Store user answer for simulation mode only (category and quick already handled)
+                if (quiz.mode === 'simulation') {
+                    state.quiz.userAnswers[state.quiz.currentIndex] = {
+                        question: q.question,
+                        choice: selected,
+                        explanation: q.explanation,
+                    };
+                }
+                
+                // mark left nav as answered for simulation, category, and quick modes
+                try { if (quiz.mode === 'simulation' || quiz.mode === 'category' || quiz.mode === 'quick') markNavAnswered(quiz.currentIndex); } catch(e) { console.warn('markNavAnswered failed', e); }
+            }
+        }
+        
+        function showFeedbackPopup(message, isCorrect) {
+            // Create popup overlay
+            const popup = document.createElement('div');
+            popup.id = 'feedback-popup';
+            popup.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+                font-family: inherit;
+            `;
+            
+            // Create popup content
+            const content = document.createElement('div');
+            content.style.cssText = `
+                background-color: ${isCorrect ? '#10b981' : '#ef4444'};
+                color: white;
+                padding: 40px 60px;
+                border-radius: 16px;
+                font-size: 32px;
+                font-weight: bold;
+                text-align: center;
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+                animation: popupFadeIn 0.3s ease-out;
+            `;
+            content.textContent = message;
+            
+            // Add CSS animation
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes popupFadeIn {
+                    from {
+                        opacity: 0;
+                        transform: scale(0.9);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: scale(1);
+                    }
+                }
+                @keyframes popupFadeOut {
+                    from {
+                        opacity: 1;
+                        transform: scale(1);
+                    }
+                    to {
+                        opacity: 0;
+                        transform: scale(0.9);
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            popup.appendChild(content);
+            document.body.appendChild(popup);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                content.style.animation = 'popupFadeOut 0.3s ease-out';
+                setTimeout(() => {
+                    if (document.body.contains(popup)) {
+                        document.body.removeChild(popup);
+                    }
+                    if (document.head.contains(style)) {
+                        document.head.removeChild(style);
+                    }
+                }, 300);
+            }, 500);
+        }
+        
+        function handlePrevQuestion(){
+            const quiz = state.quiz;
+            
+            if (quiz.mode === 'category') {
+                // Category mode: loop backwards
+                quiz.currentIndex = (quiz.currentIndex - 1 + quiz.questions.length) % quiz.questions.length;
+                displayQuestion();
+            } else {
+                // Quick and simulation modes: go to previous question if not at first
+                if (quiz.currentIndex > 0) {
+                    quiz.currentIndex--;
+                    displayQuestion();
+                } else {
+                    // At first question, don't go anywhere
+                    console.log('At first question. Cannot go back further.');
+                }
             }
         }
         
@@ -1443,9 +1830,8 @@
                     quiz.currentIndex++;
                     displayQuestion();
                 } else {
-                    (async () => {
-                        await showResults();
-                    })();
+                    // Don't auto-show results, let user click grade button
+                    console.log('Reached last question. Click grade button to see results.');
                 }
             }
         }
@@ -1479,6 +1865,23 @@
             if (tc) tc.classList.add('hidden');
             
             // Debug logs removed for brevity
+            
+            // For quick and category modes, score is already calculated in grade button handler
+            // But we need to ensure correct answers are stored in userAnswers for display
+            if (state.quiz.mode === 'quick' || state.quiz.mode === 'category') {
+                const total = state.quiz.questions.length;
+                
+                // Store correct answers in userAnswers for review display
+                for (let i = 0; i < total; i++) {
+                    const qno = i + 1;
+                    const correctAnswer = state.quiz.answerKey ? state.quiz.answerKey[String(qno)] : undefined;
+                    
+                    if (!state.quiz.userAnswers[i]) state.quiz.userAnswers[i] = {};
+                    state.quiz.userAnswers[i].correct = correctAnswer || null;
+                    
+                    console.log(`Storing correct answer for question ${qno}: ${correctAnswer}`);
+                }
+            }
             
             if (state.quiz.mode === 'simulation') {
                 const total = state.quiz.questions.length;
@@ -1585,7 +1988,7 @@
             const container = document.getElementById('review-container');
             container.innerHTML = '';
             // PDF simulation mode: show per-question your answer vs correct answer from kakomon_answers.json
-            if (state.quiz.mode === 'simulation' || state.quiz.mode === 'category') {
+            if (state.quiz.mode === 'simulation' || state.quiz.mode === 'category' || state.quiz.mode === 'quick') {
                     async function ensureAnswerKeyForReview(){
                     if (state.quiz.answerKey) return;
                     if (state.quiz.mode === 'category') {
@@ -1646,6 +2049,8 @@
                     
                     if (state.quiz.mode === 'category') {
                         header.innerHTML = `<h3 class="kid-title text-xl font-bold">カテゴリ別練習 解答レビュー</h3>`;
+                    } else if (state.quiz.mode === 'quick') {
+                        header.innerHTML = `<h3 class="kid-title text-xl font-bold">クイッククイズ 解答レビュー</h3>`;
                     } else {
                         // If year stored as YYYYMM (final mode), format as 'YYYY年M月'
                         let reviewTitleYear = state.quiz.year;
@@ -1661,7 +2066,7 @@
                     }
                     container.appendChild(header);
 
-                    if (!state.quiz.answerKey && state.quiz.mode !== 'category') {
+                    if (!state.quiz.answerKey && state.quiz.mode === 'simulation') {
                         const warn = document.createElement('div');
                         warn.className = 'mb-3 p-3 rounded-lg bg-yellow-50 text-yellow-800 border border-yellow-200 text-sm';
                         warn.innerHTML = `解答キーを読み込めませんでした。HTTPサーバーで開いてください。<br>
@@ -1673,19 +2078,18 @@
                     const total = state.quiz.questions.length;
                     for (let i = 0; i < total; i++) {
                         const qno = i + 1;
-                        // For category mode: use 'selected', for simulation mode: use 'choice'
-                        const your = state.quiz.mode === 'category' 
+                        // For category and quick mode: use 'selected', for simulation mode: use 'choice'
+                        const your = (state.quiz.mode === 'category' || state.quiz.mode === 'quick') 
                             ? (state.quiz.userAnswers[i]?.selected || '—')
                             : (state.quiz.userAnswers[i]?.choice || '—');
                         let correct = '—';
                         
                         if (state.quiz.mode === 'category') {
-                            // For category mode
-                            if (state.quiz.questions[i].is_past) {
-                                correct = state.quiz.categoryAnswersByQId?.[i] || '—';
-                            } else {
-                                correct = state.quiz.questions[i].answer || '—';
-                            }
+                            // For category mode, use stored correct answer from userAnswers
+                            correct = state.quiz.userAnswers[i]?.correct || '—';
+                        } else if (state.quiz.mode === 'quick') {
+                            // For quick mode, use stored correct answer from userAnswers
+                            correct = state.quiz.userAnswers[i]?.correct || '—';
                         } else {
                             // For simulation mode
                             correct = state.quiz.answerKey ? (state.quiz.answerKey[String(qno)] || '—') : '—';
