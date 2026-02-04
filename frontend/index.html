@@ -1542,6 +1542,31 @@
                     button.onclick = () => selectAnswer(optionText, button);
                     optionsContainer.appendChild(button); 
                 });
+                
+                // Re-select previously chosen answer for Quick Mode
+                if (quiz.mode === 'quick') {
+                    const saved = state.quiz.userAnswers[state.quiz.currentIndex]?.selected;
+                    if (saved) {
+                        const correctAnswer = q.answer;
+                        Array.from(optionsContainer.querySelectorAll('.option-btn')).forEach(btn => {
+                            const text = btn.textContent.trim();
+                            if (text === saved) {
+                                // Check if user answer is correct
+                                if (saved === correctAnswer) {
+                                    // Correct answer: highlight user selection in green
+                                    btn.classList.add('correct');
+                                } else {
+                                    // Wrong answer: highlight user selection in red
+                                    btn.classList.add('incorrect');
+                                }
+                            }
+                            // Show correct answer in green
+                            if (text === correctAnswer) {
+                                btn.classList.add('correct');
+                            }
+                        });
+                    }
+                }
             } else {
                 // --- Handle new object format for Simulations ---
                 Object.entries(q.options).forEach(([key, value]) => {
